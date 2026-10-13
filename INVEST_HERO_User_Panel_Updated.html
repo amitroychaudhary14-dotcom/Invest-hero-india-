@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <title>INVEST HERO</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Firebase v8 SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        hero: {
+                            red: '#dc2626',
+                            maroon: '#8B0000',
+                            black: '#000000',
+                            dark: '#0a0a0a'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-red': '0 0 15px rgba(220, 38, 38, 0.5)',
+                        'neon-maroon': '0 0 25px rgba(139, 0, 0, 0.7)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Desktop constrained Mobile View */
+        #app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            height: 100dvh;
+            background-color: #050505;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(139,0,0,0.2);
+            border-left: 1px solid rgba(255,255,255,0.05);
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Glassmorphism Classes */
+        .glass {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(220, 38, 38, 0.15);
+        }
+        
+        .glass-card {
+            background: linear-gradient(145deg, rgba(30,30,30,0.5) 0%, rgba(10,10,10,0.9) 100%);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* Inputs */
+        .premium-input {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 0.875rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            transition: all 0.3s;
+        }
+        .premium-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 10px rgba(220,38,38,0.3);
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* SPA Screen Transitions */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow-y: auto;
+            padding-bottom: 90px;
+            display: none;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: transparent;
+            z-index: 10;
+        }
+        .screen.active {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .screen.auth-screen { padding-bottom: 0; z-index: 50; background-color: #050505;}
+
+        /* Animations */
+        .toast { animation: slideDown 0.3s ease-out forwards; }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .marquee-container { overflow: hidden; white-space: nowrap; }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 15s linear infinite;
+        }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+        /* 3D Plan Card */
+        .plan-card { transition: transform 0.2s; }
+        .plan-card:active { transform: scale(0.97); }
+
+        /* Premium cinematic splash */
+        #premium-splash { position:fixed; inset:0; z-index:250; display:flex; align-items:center; justify-content:center; overflow:hidden; background:radial-gradient(circle at 50% 38%, #321010 0%, #100506 38%, #030304 76%); transition:opacity .55s ease, visibility .55s ease; }
+        #premium-splash.splash-hidden { opacity:0; visibility:hidden; pointer-events:none; }
+        #premium-splash:before { content:""; position:absolute; width:290px; height:290px; border-radius:50%; border:1px solid rgba(255,60,60,.18); box-shadow:0 0 70px rgba(220,38,38,.16), inset 0 0 50px rgba(220,38,38,.12); animation:splashPulse 2.2s ease-in-out infinite; }
+        #splash-logo-wrap { width:104px; height:104px; display:flex; align-items:center; justify-content:center; border-radius:30px; border:1px solid rgba(255,80,80,.55); background:linear-gradient(145deg,#24090b,#080808); box-shadow:0 0 30px rgba(220,38,38,.35), inset 0 0 22px rgba(255,255,255,.04); animation:logoFloat 2s ease-in-out infinite; }
+        #splash-logo { max-width:78%; max-height:78%; object-fit:contain; display:none; }
+        #splash-default-icon { font-size:48px; color:#ff3434; filter:drop-shadow(0 0 12px rgba(255,35,35,.75)); }
+        #splash-progress { width:176px; height:3px; overflow:hidden; border-radius:9px; background:rgba(255,255,255,.1); }
+        #splash-progress:after { content:""; display:block; width:40%; height:100%; background:linear-gradient(90deg,#7f1111,#ff4242,#ffd0d0); box-shadow:0 0 12px #ff3030; animation:splashLoad 1.6s ease-in-out infinite; }
+        @keyframes splashPulse { 0%,100%{transform:scale(.94);opacity:.55} 50%{transform:scale(1.06);opacity:1} }
+        @keyframes logoFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+        @keyframes splashLoad { 0%{transform:translateX(-110%)} 100%{transform:translateX(290%)} }
+    </style>
+</head>
+<body>
+
+<div id="app-container" class="no-scrollbar">
+
+    <!-- Premium cinematic startup screen -->
+    <div id="premium-splash" role="status" aria-label="Loading INVEST HERO">
+      <div class="relative z-10 flex flex-col items-center text-center px-6">
+        <div id="splash-logo-wrap"><img id="splash-logo" alt="INVEST HERO logo"><i id="splash-default-icon" class="fa-solid fa-bolt"></i></div>
+        <p id="splash-kicker" class="mt-7 text-[10px] uppercase tracking-[.42em] font-extrabold text-red-300">PREMIUM EXPERIENCE</p>
+        <h1 id="splash-title" class="mt-2 text-3xl font-black tracking-[.13em] text-white">INVEST <span class="text-red-500">HERO</span></h1>
+        <p id="splash-tagline" class="mt-2 text-xs text-gray-400 tracking-wide">Your account. Your dashboard. Your control.</p>
+        <div id="splash-progress" class="mt-8"><span></span></div>
+        <p class="mt-3 text-[9px] uppercase tracking-[.3em] text-gray-500">SECURELY INITIALIZING</p>
+      </div>
+    </div>
+
+    <!-- Global Loader -->
+    <div id="loading" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] hidden flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-hero-red border-t-transparent rounded-full animate-spin shadow-neon-red"></div>
+        <p class="mt-4 text-hero-red font-bold tracking-widest text-sm animate-pulse">PROCESSING</p>
+    </div>
+
+    <!-- Toasts -->
+    <div id="toast-container" class="absolute top-4 left-4 right-4 z-[90] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Live Popups -->
+    <div id="live-popups" class="absolute top-16 left-4 right-4 z-40 hidden pointer-events-none">
+        <div class="glass rounded-full py-1.5 px-4 marquee-container flex items-center shadow-neon-maroon bg-black/80">
+            <i class="fa-solid fa-bell text-hero-red mr-2 text-xs"></i>
+            <div class="marquee-content text-xs text-gray-200 font-medium tracking-wide" id="marquee-text">
+                INVEST HERO Welcomes You to the Future!
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="screen-login" class="screen auth-screen flex flex-col justify-center px-8 relative">
+        <div class="absolute top-0 right-0 w-72 h-72 bg-hero-red opacity-10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-0 left-0 w-64 h-64 bg-hero-maroon opacity-10 rounded-full blur-[100px]"></div>
+        
+        <div class="text-center mb-10 relative z-10">
+            <div id="login-logo-wrap" class="w-20 h-20 mx-auto bg-black border border-hero-red/50 rounded-2xl flex items-center justify-center shadow-neon-red mb-4 overflow-hidden">
+                <img id="login-logo-image" alt="INVEST HERO logo" class="hidden w-full h-full object-contain p-2"><i id="login-logo-icon" class="fa-solid fa-bolt text-4xl text-hero-red"></i>
+            </div>
+            <h1 class="text-3xl font-black tracking-widest text-white drop-shadow-[0_0_10px_rgba(220,38,38,0.8)]">INVEST<span class="text-hero-red">HERO</span></h1>
+            <p class="text-gray-400 text-sm mt-2 font-medium">Log in to your dashboard</p>
+        </div>
+
+        <form id="login-form" class="space-y-4 relative z-10">
+            <input type="email" id="login-email" placeholder="Email Address" required class="premium-input">
+            <input type="password" id="login-password" placeholder="Login Password" required class="premium-input">
+            <button type="submit" class="w-full py-3.5 mt-2 bg-gradient-to-r from-hero-maroon to-hero-red text-white font-bold rounded-xl shadow-neon-red hover:opacity-90 transition-opacity uppercase tracking-wider">
+                Access Account
+            </button>
+        </form>
+        <div class="text-center mt-6 z-10">
+            <p class="text-gray-400 text-sm"><button type="button" onclick="sendLoginPasswordReset()" class="text-hero-red font-bold hover:underline">Forgot login password?</button></p>
+            <p class="text-gray-400 text-sm mt-3">New user? <a href="#" onclick="switchScreen('signup')" class="text-hero-red font-bold hover:underline">Create Account</a></p>
+        </div>
+    </div>
+
+    <!-- SIGNUP SCREEN -->
+    <div id="screen-signup" class="screen auth-screen flex flex-col justify-center px-8 relative">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-hero-red opacity-5 rounded-full blur-[150px]"></div>
+        
+        <div class="mb-8 relative z-10 text-center">
+            <h1 class="text-2xl font-bold tracking-wide">Register Account</h1>
+            <p class="text-gray-400 text-sm mt-1">Join the elite investor club</p>
+        </div>
+
+        <form id="signup-form" class="space-y-4 relative z-10">
+            <input type="text" id="reg-name" placeholder="Full Name" required class="premium-input">
+            <input type="email" id="reg-email" placeholder="Email Address" required class="premium-input">
+            <div class="flex gap-2">
+                <input type="tel" id="reg-phone" placeholder="Mobile Number" required class="premium-input flex-1">
+                <button type="button" onclick="triggerFakeOTP()" class="px-4 bg-white/5 border border-hero-red/30 text-hero-red text-xs rounded-xl font-bold hover:bg-hero-red/10 transition-colors whitespace-nowrap shadow-neon-red">Get OTP</button>
+            </div>
+            <input type="text" id="reg-otp" placeholder="OTP verification unavailable" class="premium-input" disabled>
+            <input type="password" id="reg-password" placeholder="Login Password" required class="premium-input">
+            <input type="password" id="reg-withdraw-password" placeholder="Withdrawal Password" required class="premium-input">
+            <input type="text" id="reg-invite" placeholder="Invite Code (Mandatory)" required class="premium-input uppercase tracking-widest text-hero-red font-bold bg-hero-red/5">
+            
+            <button type="submit" class="w-full py-3.5 mt-2 bg-gradient-to-r from-hero-red to-hero-maroon text-white font-bold rounded-xl shadow-neon-red hover:opacity-90 transition-opacity uppercase tracking-wider">
+                Create Account
+            </button>
+        </form>
+        <div class="text-center mt-6 z-10 pb-10">
+            <p class="text-gray-400 text-sm">Already registered? <a href="#" onclick="switchScreen('login')" class="text-hero-red font-bold hover:underline">Log In</a></p>
+        </div>
+    </div>
+
+    <!-- HOME SCREEN -->
+    <div id="screen-home" class="screen no-scrollbar relative">
+        <div class="px-5 pt-6 pb-4 flex justify-between items-center glass sticky top-0 z-30">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-hero-red text-xl drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"></i>
+                <span class="font-black tracking-widest text-lg">INVEST<span class="text-hero-red">HERO</span></span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="showVipUpgrade()" class="text-xs font-bold px-2.5 py-1 bg-black/60 rounded border border-hero-red/50 flex items-center gap-1 shadow-neon-red text-white">
+                    <i class="fa-solid fa-crown text-yellow-500"></i> VIP <span id="ui-vip-level">0</span> <span class="text-yellow-400">↑</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="px-4 py-4 space-y-5 mt-8">
+            <!-- Banner Slider -->
+            <div id="home-banner" onclick="openBannerLink()" class="w-full h-44 rounded-2xl bg-black overflow-hidden relative shadow-neon-maroon border border-hero-red/30 group cursor-pointer">
+                <div class="absolute inset-0 bg-gradient-to-r from-black/90 to-transparent z-10 flex flex-col justify-center px-6">
+                    <h2 class="text-2xl font-black text-white mb-1 uppercase drop-shadow-md">Unlock<br><span class="text-hero-red">Wealth</span></h2>
+                    <p class="text-xs text-gray-300 font-medium">Explore plans, updates and events</p>
+                    <button onclick="document.getElementById('plans-container').scrollIntoView({behavior:'smooth'})" class="mt-4 bg-hero-red px-5 py-2 rounded-full text-xs font-bold w-max shadow-neon-red">Invest Now</button>
+                </div>
+                <img id="home-banner-image" src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover opacity-40">
+            </div>
+
+            <!-- Action Grid (4 Buttons) -->
+            <div class="grid grid-cols-5 gap-2">
+                <div onclick="switchScreen('recharge')" class="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center text-lg border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.3)]"><i class="fa-solid fa-wallet"></i></div>
+                    <span class="text-[10px] font-bold text-gray-300">Recharge</span>
+                </div>
+                <div onclick="switchScreen('withdraw')" class="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-hero-red/10 text-hero-red flex items-center justify-center text-lg border border-hero-red/20 shadow-[0_0_10px_rgba(220,38,38,0.3)]"><i class="fa-solid fa-building-columns"></i></div>
+                    <span class="text-[10px] font-bold text-gray-300">Withdraw</span>
+                </div>
+                <div onclick="switchScreen('income')" class="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg border border-emerald-500/20"><i class="fa-solid fa-layer-group"></i></div>
+                    <span class="text-[10px] font-bold text-gray-300">My Plan</span>
+                </div>
+                <div onclick="switchScreen('team')" class="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.3)]"><i class="fa-solid fa-share-nodes"></i></div>
+                    <span class="text-[10px] font-bold text-gray-300">Share</span>
+                </div>
+                <div onclick="window.open('https://t.me/investhero', '_blank')" class="glass-card rounded-xl p-3 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center text-lg border border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.3)]"><i class="fa-brands fa-telegram"></i></div>
+                    <span class="text-[10px] font-bold text-gray-300">Service</span>
+                </div>
+            </div>
+
+            <!-- Daily Checkin Banner -->
+            <div class="glass-card rounded-xl p-4 flex justify-between items-center border border-yellow-500/40 relative overflow-hidden">
+                <div class="absolute inset-0 bg-yellow-500/5"></div>
+                <div class="flex items-center gap-3 relative z-10">
+                    <div class="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center"><i class="fa-solid fa-calendar-check text-xl text-yellow-500 drop-shadow-[0_0_5px_rgba(234,179,8,0.8)]"></i></div>
+                    <div>
+                        <h3 class="font-bold text-sm tracking-wide">Daily Check-in</h3>
+                        <p class="text-[10px] text-gray-400">Claim daily free bonus!</p>
+                    </div>
+                </div>
+                <button onclick="handleCheckIn()" class="relative z-10 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black px-4 py-2 rounded-lg text-xs font-black shadow-[0_0_15px_rgba(234,179,8,0.4)] active:scale-95 transition-transform uppercase">Claim</button>
+            </div>
+
+            <!-- Investment Plans -->
+            <div>
+                <div class="flex items-center gap-2 mb-4 mt-2">
+                    <div class="w-1 h-5 bg-hero-red rounded shadow-neon-red"></div>
+                    <h3 class="text-lg font-black uppercase tracking-wider">Premium Plans</h3>
+                </div>
+                <div class="flex gap-2 overflow-x-auto pb-1">
+                    <button onclick="showPlanCategory('daily')" class="plan-category-btn px-4 py-2 rounded-full bg-hero-red text-xs font-bold">Daily Plans</button>
+                    <button onclick="showPlanCategory('monthly')" class="plan-category-btn px-4 py-2 rounded-full bg-black border border-white/10 text-xs font-bold">Monthly Plans</button>
+                    <button onclick="showPlanCategory('event')" class="plan-category-btn px-4 py-2 rounded-full bg-black border border-white/10 text-xs font-bold">Events</button>
+                    <button onclick="showPlanCategory('vip0')" class="plan-category-btn px-4 py-2 rounded-full bg-black border border-white/10 text-xs font-bold">VIP 0</button>
+                </div>
+                <div id="plans-container" class="space-y-4"></div>
+                    <!-- Plans dynamically injected -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INCOME SCREEN -->
+    <div id="screen-income" class="screen no-scrollbar">
+        <div class="p-5 glass sticky top-0 z-30 text-center font-bold tracking-widest uppercase text-sm border-b border-white/10">My Plans & Income</div>
+        <div class="p-4">
+            <div class="glass-card p-6 rounded-2xl text-center mb-6 border border-hero-red/30 shadow-neon-maroon relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 text-hero-red/5 text-9xl"><i class="fa-solid fa-clock"></i></div>
+                <h3 class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">Next Profit Drop In</h3>
+                <div id="profit-timer" class="text-4xl font-black text-white tracking-widest font-mono drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">00:00:00</div>
+                <p class="text-[10px] text-hero-red mt-3 font-bold bg-hero-red/10 inline-block px-3 py-1 rounded-full border border-hero-red/20">RETURNS CREDITED DAILY AT MIDNIGHT</p>
+            </div>
+
+            <h3 class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider ml-1">My Plans</h3><div id="plan-history-list" class="space-y-3 mb-6"><p class="text-xs text-gray-500 text-center py-4">No purchased plans yet.</p></div><h3 class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider ml-1">Transaction History</h3>
+            <div id="passbook-list" class="space-y-3">
+                <div class="glass-card p-4 rounded-xl flex justify-between items-center border border-white/5">
+                    <div>
+                        <p class="text-sm font-bold">Registration Bonus</p>
+                        <p class="text-[10px] text-gray-400 mt-1">System</p>
+                    </div>
+                    <span class="font-bold text-green-500">+₹0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEAM SCREEN -->
+    <div id="screen-team" class="screen no-scrollbar">
+        <div class="p-5 glass sticky top-0 z-30 text-center font-bold tracking-widest uppercase text-sm border-b border-white/10">My Team</div>
+        <div class="p-4 space-y-5">
+            <div class="glass-card p-5 rounded-2xl border border-hero-red/30 shadow-neon-red bg-gradient-to-br from-black to-hero-dark">
+                <div class="flex justify-between items-start mb-5">
+                    <div>
+                        <p class="text-[10px] text-hero-red uppercase font-bold tracking-widest mb-1">My Invite Code</p>
+                        <h2 class="text-3xl font-black text-white tracking-widest drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" id="my-invite-code">------</h2>
+                    </div>
+                    <div class="w-14 h-14 bg-white rounded p-1 shadow-neon-red">
+                        <img id="invite-qr" src="" alt="Invite QR code" class="w-full h-full mix-blend-multiply">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="ref-link" readonly class="flex-1 bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-300 outline-none" value="https://investhero.com/?ref=------">
+                    <button onclick="copyRefLink()" class="bg-hero-red px-5 py-2 rounded-lg text-xs font-bold text-white shadow-neon-red active:scale-95 transition-transform uppercase tracking-wider">Copy</button>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-xl p-4 flex justify-between text-center divide-x divide-white/10 bg-black/40">
+                <div class="flex-1 px-2"><p class="text-[10px] text-gray-400 uppercase font-bold mb-1">Level 1</p><p id="team-rate-1" class="text-xl font-black text-white">—%</p></div>
+                <div class="flex-1 px-2"><p class="text-[10px] text-gray-400 uppercase font-bold mb-1">Level 2</p><p id="team-rate-2" class="text-xl font-black text-white">—%</p></div>
+                <div class="flex-1 px-2"><p class="text-[10px] text-gray-400 uppercase font-bold mb-1">Level 3</p><p id="team-rate-3" class="text-xl font-black text-white">—%</p></div>
+            </div>
+
+            <div class="glass-card rounded-xl p-4 space-y-4 border border-white/5">
+                <div class="flex justify-between items-center pb-3 border-b border-white/5"><span class="text-xs text-gray-300 font-medium">Level 1 Members</span><span id="team-level1-count" class="font-bold text-sm">0</span></div>
+                <div class="flex justify-between items-center pb-3 border-b border-white/5"><span class="text-xs text-gray-300 font-medium">Total Team Recharge</span><span id="team-recharge-total" class="font-bold text-sm text-green-500">₹ 0.00</span></div>
+                <div class="flex justify-between items-center"><span class="text-xs text-gray-300 font-medium">Total Commissions</span><span id="team-commission-total" class="font-bold text-sm text-hero-red">₹ 0.00</span></div>
+            </div>
+
+            <div class="glass-card rounded-xl p-4 bg-gradient-to-r from-blue-900/30 to-black border border-blue-500/20">
+                <h3 class="font-black text-sm text-blue-400 mb-1 uppercase tracking-wide"><i class="fa-solid fa-gem mr-2"></i>Fixed Salary</h3>
+                <p class="text-[10px] text-gray-400 mb-4 font-medium">Invite 50 VIP1 members in Level 1 to unlock ₹500/day salary.</p>
+                <div class="w-full bg-black/80 rounded-full h-1.5 border border-white/5 overflow-hidden">
+                    <div class="bg-blue-500 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" style="width: 0%"></div>
+                </div>
+                <p class="text-right text-[10px] text-gray-500 mt-2 font-bold tracking-widest">0 / 50 VIPs</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- REWARDS SCREEN -->
+    <div id="screen-rewards" class="screen no-scrollbar">
+        <div class="p-5 glass sticky top-0 z-30 text-center font-bold tracking-widest uppercase text-sm border-b border-white/10">Rewards Hub</div>
+        <div class="p-4 space-y-6">
+            <div class="glass-card p-6 rounded-xl text-center border border-hero-red/20 shadow-neon-maroon">
+                <i class="fa-solid fa-gift text-4xl text-hero-red mb-3 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]"></i>
+                <h3 class="font-black text-lg mb-1 uppercase tracking-wider">Gift Code</h3>
+                <p class="text-[10px] text-gray-400 mb-5 font-medium">Enter promo code for free wallet balance</p>
+                <div class="flex gap-2">
+                    <input type="text" id="promo-input" placeholder="ENTER CODE" class="flex-1 px-4 py-3 bg-black border border-white/10 text-sm rounded-lg text-center uppercase tracking-widest font-bold focus:border-hero-red outline-none">
+                    <button onclick="claimPromo()" class="bg-hero-red px-5 rounded-lg font-black text-sm uppercase tracking-wider shadow-neon-red active:scale-95 transition-transform">Claim</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE SCREEN -->
+    <div id="screen-profile" class="screen no-scrollbar">
+        <div class="p-5 glass sticky top-0 z-30 flex justify-between items-center border-b border-white/10">
+            <span class="font-bold tracking-widest uppercase text-sm">My Profile</span>
+            <i onclick="logout()" class="fa-solid fa-power-off text-hero-red text-lg cursor-pointer hover:scale-110 transition-transform"></i>
+        </div>
+        
+        <div class="p-4 space-y-4">
+            <div class="glass-card p-5 rounded-2xl flex items-center gap-5 relative overflow-hidden border border-white/5">
+                <div class="relative w-16 h-16 shrink-0 z-10">
+                    <img id="profile-photo" alt="Profile photo" class="w-16 h-16 rounded-full object-cover bg-black border-2 border-hero-red shadow-neon-red" src="" onerror="this.style.display='none';document.getElementById('profile-photo-fallback').style.display='flex'">
+                    <div id="profile-photo-fallback" class="w-16 h-16 rounded-full bg-black border-2 border-hero-red items-center justify-center shadow-neon-red" style="display:flex"><i class="fa-solid fa-user-astronaut text-2xl text-hero-red"></i></div>
+                    <label for="profile-photo-file" class="absolute -bottom-1 -right-1 bg-hero-red rounded-full w-7 h-7 flex items-center justify-center border-2 border-black cursor-pointer"><i class="fa-solid fa-camera text-xs"></i></label>
+                    <input id="profile-photo-file" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="uploadProfilePhoto(this)">
+                </div>
+                <div class="z-10 flex-1">
+                    <h2 class="font-black text-lg tracking-wide" id="prof-name">User</h2>
+                    <p class="text-xs text-gray-400 font-medium mb-1"><i class="fa-solid fa-phone text-[10px] mr-1"></i> <span id="prof-phone">---</span></p>
+                    <button type="button" onclick="copyAccountUid()" class="mt-1 inline-flex items-center gap-2 rounded-lg border border-hero-red/30 bg-hero-red/10 px-3 py-1.5 text-[11px] font-bold text-white"><i class="fa-solid fa-fingerprint text-hero-red"></i> Account ID: <span id="prof-account-id" class="font-mono tracking-widest">---------</span><i class="fa-regular fa-copy text-gray-400"></i></button>
+                    <button type="button" onclick="showVipUpgrade()" class="text-[10px] font-black bg-hero-red/20 text-hero-red px-3 py-1 rounded inline-block border border-hero-red/30 uppercase tracking-widest shadow-neon-red">VIP <span id="prof-vip">0</span> · Tap to upgrade</button>
+                </div>
+            </div>
+
+            <div class="glass-card p-6 rounded-2xl bg-gradient-to-br from-hero-maroon/30 to-black border border-hero-red/30 shadow-neon-maroon">
+                <p class="text-[10px] text-gray-300 mb-1 uppercase font-bold tracking-widest">Total Wallet Balance</p>
+                <h1 class="text-4xl font-black text-white mb-5 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">₹ <span class="ui-balance-sync">0.00</span></h1>
+                <div class="flex gap-3">
+                    <button onclick="switchScreen('recharge')" class="flex-1 py-3 bg-gradient-to-r from-hero-red to-hero-maroon rounded-xl font-black text-sm shadow-neon-red active:scale-95 transition-transform uppercase tracking-wider">Deposit</button>
+                    <button onclick="switchScreen('withdraw')" class="flex-1 py-3 bg-white text-black rounded-xl font-black text-sm active:scale-95 transition-transform uppercase tracking-wider shadow-[0_0_15px_rgba(255,255,255,0.3)]">Withdraw</button>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl overflow-hidden divide-y divide-white/5 border border-white/5 mt-2">
+                <button type="button" onclick="downloadApp()" class="w-full p-4 flex items-center justify-between active:bg-white/5 text-left"><div class="flex items-center gap-3"><i class="fa-brands fa-android text-green-400 w-5"></i><span class="font-semibold">Download APK</span></div><i class="fa-solid fa-download text-gray-500"></i></button>
+            <button type="button" onclick="openBankDetails()" class="w-full p-4 flex items-center justify-between active:bg-white/5 text-left"><div class="flex items-center gap-3"><i class="fa-solid fa-building-columns text-gray-400 w-5"></i> <span class="font-medium text-sm">Add / Edit Bank Account</span></div><i class="fa-solid fa-chevron-right text-xs text-gray-500"></i></button>
+                <button type="button" onclick="openRechargeRecords()" class="w-full p-4 flex items-center justify-between active:bg-white/5 text-left"><div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice-dollar text-gray-400 w-5"></i> <span class="font-medium text-sm">Deposit History</span></div><i class="fa-solid fa-chevron-right text-xs text-gray-500"></i></button>
+                <button type="button" onclick="openChangePassword()" class="w-full p-4 flex items-center justify-between active:bg-white/5 text-left"><div class="flex items-center gap-3"><i class="fa-solid fa-lock text-gray-400 w-5"></i> <span class="font-medium text-sm">Change Login Password</span></div><i class="fa-solid fa-chevron-right text-xs text-gray-500"></i></button>
+                <button type="button" onclick="openWithdrawalPasswordReset()" class="w-full p-4 flex items-center justify-between active:bg-white/5 text-left"><div class="flex items-center gap-3"><i class="fa-solid fa-shield-halved text-emerald-400 w-5"></i> <span class="font-medium text-sm">Reset Withdrawal Password</span></div><i class="fa-solid fa-chevron-right text-xs text-gray-500"></i></button>
+                <button type="button" onclick="loadWithdrawalHistory();switchScreen('withdraw-history')" class="w-full p-4 flex items-center justify-between active:bg-white/5 text-left"><div class="flex items-center gap-3"><i class="fa-solid fa-clock-rotate-left text-gray-400 w-5"></i> <span class="font-medium text-sm">Withdrawal History</span></div><i class="fa-solid fa-chevron-right text-xs text-gray-500"></i></button>
+                <button type="button" onclick="copyAccountUid()" class="w-full p-4 flex items-center justify-between active:bg-white/5 text-left"><div class="flex items-center gap-3"><i class="fa-solid fa-fingerprint text-gray-400 w-5"></i> <span class="font-medium text-sm">Copy Account ID</span></div><i class="fa-solid fa-copy text-xs text-gray-500"></i></button>
+                <div class="p-4 flex items-center justify-between"><div><div class="flex items-center gap-3"><i class="fa-solid fa-ticket text-gray-400 w-5"></i><span class="font-medium text-sm">Invitation Code</span></div><p id="profile-invite-code" class="text-emerald-400 font-black tracking-widest mt-2 ml-8">------</p></div><button type="button" onclick="copyProfileInviteCode()" class="text-xs bg-white/10 px-3 py-2 rounded-lg">Copy</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUPPORT CENTER -->
+    <div id="screen-support" class="screen no-scrollbar">
+      <div class="p-5 glass sticky top-0 z-30 flex items-center gap-4 border-b border-white/10"><i onclick="switchScreen('home')" class="fa-solid fa-arrow-left text-lg cursor-pointer"></i><span class="font-bold tracking-widest uppercase text-sm">AI Support Center</span></div>
+      <div class="p-4 space-y-4">
+        <div class="glass-card rounded-2xl p-4"><h3 class="font-black mb-2">How can we help?</h3><p class="text-xs text-gray-400 mb-3">Choose a topic for quick guidance. This is an automated FAQ assistant, not a human agent.</p>
+          <div class="grid grid-cols-2 gap-2"><button class="support-topic p-3 rounded-xl bg-black border border-white/10 text-sm" data-topic="deposit">Deposit problem</button><button class="support-topic p-3 rounded-xl bg-black border border-white/10 text-sm" data-topic="withdrawal">Withdrawal problem</button><button class="support-topic p-3 rounded-xl bg-black border border-white/10 text-sm" data-topic="plan">Plan / VIP help</button><button class="support-topic p-3 rounded-xl bg-black border border-white/10 text-sm" data-topic="referral">Invite / bonus help</button></div>
+          <div id="support-chat-log" class="mt-3 p-3 rounded-xl bg-white/5 text-sm text-gray-300 space-y-2"><p>🤖 Hi! INVEST HERO automated support is available 24/7 for common questions. Ask a question below or choose a topic.</p></div>
+          <form id="support-chat-form" class="mt-3 flex gap-2"><input id="support-chat-input" class="min-w-0 flex-1 bg-black border border-white/10 rounded-xl px-3 py-3 text-sm" placeholder="Ask about plans, wallet, invite code…" maxlength="300" /><button class="px-4 rounded-xl bg-hero-red font-bold text-sm" type="submit">Ask</button></form>
+          <p class="text-[10px] text-gray-500 mt-2">Automated FAQ support, not a live human or financial adviser. Never share passwords, OTPs, UPI PINs or bank PINs.</p>
+        </div>
+        <div class="glass-card rounded-2xl p-4"><h3 class="font-bold mb-3">Contact support</h3><div class="flex gap-2"><a id="support-telegram-link" target="_blank" rel="noopener" class="hidden flex-1 text-center p-3 rounded-xl bg-sky-700 font-bold text-sm">Open Telegram</a><a id="support-whatsapp-link" target="_blank" rel="noopener" class="hidden flex-1 text-center p-3 rounded-xl bg-green-700 font-bold text-sm">Open WhatsApp</a></div><p class="text-[11px] text-gray-500 mt-3">Never share your password, OTP, or banking PIN with anyone.</p></div>
+      </div>
+    </div>
+
+    <!-- RECHARGE SCREEN -->
+    <div id="screen-recharge" class="screen no-scrollbar">
+        <div class="p-5 glass sticky top-0 z-30 flex items-center gap-4 border-b border-white/10">
+            <i onclick="switchScreen('profile')" class="fa-solid fa-arrow-left text-lg cursor-pointer"></i>
+            <span class="font-bold tracking-widest uppercase text-sm">Deposit Funds</span>
+        </div>
+        <div class="p-4 space-y-5">
+            <div>
+                <label class="text-[10px] text-gray-400 block mb-2 font-bold uppercase tracking-widest ml-1">Select Amount</label>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <button onclick="setRechargeAmount(700)" class="py-2.5 rounded-xl border border-white/10 bg-black text-sm font-bold active:border-hero-red transition-colors focus:border-hero-red focus:bg-hero-red/10">₹700</button>
+                    <button onclick="setRechargeAmount(2000)" class="py-2.5 rounded-xl border border-white/10 bg-black text-sm font-bold active:border-hero-red transition-colors focus:border-hero-red focus:bg-hero-red/10">₹2,000</button>
+                    <button onclick="setRechargeAmount(5000)" class="py-2.5 rounded-xl border border-white/10 bg-black text-sm font-bold active:border-hero-red transition-colors focus:border-hero-red focus:bg-hero-red/10">₹5,000</button>
+                </div>
+                <input type="number" id="recharge-amount" placeholder="Enter custom amount" class="w-full px-4 py-4 rounded-xl text-center font-black text-xl bg-black border border-white/20 focus:border-hero-red outline-none shadow-inner" value="700">
+            </div>
+
+            <div class="glass-card p-5 rounded-2xl bg-white text-black text-center relative border-none">
+                <div class="absolute -top-3 -right-2 bg-green-500 text-white text-[10px] font-black px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)] uppercase tracking-wider">Active</div>
+                <h3 class="font-black mb-3 uppercase tracking-wide">Pay to Admin UPI</h3>
+                <img id="user-payment-qr" src="" class="hidden mx-auto w-32 h-32 border border-gray-200 p-1 rounded-xl mb-4 shadow-md" alt="Payment QR code">
+                <div class="bg-gray-100 rounded-lg p-1 flex items-center justify-between border border-gray-300 cursor-pointer active:bg-gray-200" onclick="copyUPI()">
+                    <p class="text-sm font-bold pl-3" id="admin-upi">Loading payment details…</p>
+                    <div class="bg-white px-3 py-2 rounded shadow-sm"><i class="fa-solid fa-copy text-gray-600"></i></div>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-3 font-medium uppercase tracking-wide">Copy 12-digit UTR/Ref No. after payment</p>
+            </div>
+
+            <form id="recharge-form" class="space-y-3">
+                <input type="number" id="recharge-utr" placeholder="Enter 12-Digit UTR Number" required class="premium-input text-center tracking-widest font-bold">
+                <button type="submit" class="w-full py-4 bg-gradient-to-r from-hero-red to-hero-maroon text-white font-black rounded-xl shadow-neon-red active:scale-95 transition-transform uppercase tracking-widest">Submit Deposit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- WITHDRAW SCREEN -->
+    <div id="screen-withdraw" class="screen no-scrollbar">
+        <div class="p-5 glass sticky top-0 z-30 flex items-center gap-4 border-b border-white/10">
+            <i onclick="switchScreen('profile')" class="fa-solid fa-arrow-left text-lg cursor-pointer"></i>
+            <span class="font-bold tracking-widest uppercase text-sm flex-1">Withdraw Funds</span><button type="button" onclick="loadWithdrawalHistory();switchScreen('withdraw-history')" class="text-xs bg-white/10 border border-white/10 rounded-lg px-3 py-2">History</button>
+        </div>
+        <div class="p-4 space-y-5">
+            <div class="glass-card p-6 rounded-2xl text-center bg-gradient-to-br from-black to-zinc-900 border border-white/10">
+                <p class="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-widest">Withdrawable Balance</p>
+                <h2 class="text-3xl font-black text-white mb-3">₹ <span class="ui-balance-sync">0.00</span></h2>
+                <div class="inline-flex items-center gap-2 bg-hero-red/10 px-3 py-1 rounded-full border border-hero-red/20">
+                    <i class="fa-solid fa-circle-info text-hero-red text-[10px]"></i>
+                    <p class="text-[10px] text-hero-red font-bold uppercase tracking-wider">Withdrawal hours and minimum amount are set by admin</p>
+                </div>
+            </div>
+
+            <form id="withdraw-form" class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-1 ml-1 font-bold uppercase tracking-widest">Amount</label>
+                    <input type="number" id="wd-amount" placeholder="Enter Amount" required class="premium-input font-bold text-lg">
+                </div>
+                
+                <div class="glass-card p-5 rounded-xl border border-white/5 space-y-3 bg-black/40">
+                    <p class="text-[10px] font-black text-gray-400 border-b border-white/10 pb-2 mb-3 uppercase tracking-widest">Bank Details</p>
+                    <input type="text" id="wd-name" placeholder="Cardholder Name (or save in profile)" class="premium-input !py-2.5 !bg-black">
+                    <input type="number" id="wd-acc" placeholder="Account Number (or save in profile)" class="premium-input !py-2.5 !bg-black">
+                    <input type="text" id="wd-ifsc" placeholder="IFSC Code (or save in profile)" class="premium-input !py-2.5 !bg-black uppercase">
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-1 ml-1 font-bold uppercase tracking-widest">Security</label>
+                    <input type="password" id="wd-pass" placeholder="Withdrawal Password" required class="premium-input">
+                </div>
+
+                <button type="submit" class="w-full py-4 bg-white text-black font-black rounded-xl mt-4 active:scale-95 transition-transform uppercase tracking-widest shadow-[0_0_15px_rgba(255,255,255,0.3)]">Request Withdrawal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- WITHDRAWAL HISTORY SCREEN -->
+    <div id="screen-withdraw-history" class="screen no-scrollbar">
+      <div class="p-5 glass sticky top-0 z-30 flex items-center gap-4 border-b border-white/10"><i onclick="switchScreen('withdraw')" class="fa-solid fa-arrow-left text-lg cursor-pointer"></i><span class="font-bold tracking-widest uppercase text-sm">Withdrawal History</span></div>
+      <div class="p-4"><div id="withdrawal-history-list" class="space-y-3"><p class="text-sm text-gray-400 text-center py-8">Loading withdrawal history…</p></div></div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div id="bottom-nav" class="absolute bottom-0 w-full h-20 glass flex justify-around items-center px-1 z-40 hidden border-t border-hero-red/30 pb-2">
+        <div onclick="switchScreen('home')" class="nav-btn active flex flex-col items-center justify-center w-16 h-full gap-1 cursor-pointer text-gray-500 transition-colors" data-target="home">
+            <i class="fa-solid fa-bolt text-xl"></i><span class="text-[10px] font-bold tracking-wider">Home</span>
+        </div>
+        <div onclick="switchScreen('income')" class="nav-btn flex flex-col items-center justify-center w-16 h-full gap-1 cursor-pointer text-gray-500 transition-colors" data-target="income">
+            <i class="fa-solid fa-sack-dollar text-xl"></i><span class="text-[10px] font-bold tracking-wider">Income</span>
+        </div>
+        <div onclick="switchScreen('team')" class="nav-btn flex flex-col items-center justify-center w-16 h-full gap-1 cursor-pointer text-gray-500 transition-colors" data-target="team">
+            <i class="fa-solid fa-users text-xl"></i><span class="text-[10px] font-bold tracking-wider">Team</span>
+        </div>
+        <div onclick="switchScreen('rewards')" class="nav-btn flex flex-col items-center justify-center w-16 h-full gap-1 cursor-pointer text-gray-500 transition-colors relative" data-target="rewards">
+            <div class="absolute top-2 right-2 w-2 h-2 bg-hero-red rounded-full animate-ping"></div>
+            <i class="fa-solid fa-gift text-xl"></i><span class="text-[10px] font-bold tracking-wider">Rewards</span>
+        </div>
+        <div onclick="switchScreen('profile')" class="nav-btn flex flex-col items-center justify-center w-16 h-full gap-1 cursor-pointer text-gray-500 transition-colors" data-target="profile">
+            <i class="fa-solid fa-user-astronaut text-xl"></i><span class="text-[10px] font-bold tracking-wider">Profile</span>
+        </div>
+    </div>
+
+</div>
+<div id="announcement-modal" class="hidden fixed inset-0 z-[100] bg-black/80 p-5 flex items-center justify-center"><div class="w-full max-w-sm rounded-2xl border border-hero-red/40 bg-[#170606] p-5"><img id="announcement-image" class="hidden w-full max-h-40 object-cover rounded-xl mb-3" alt="Announcement"><h2 id="announcement-title" class="text-xl font-black mb-2">Welcome</h2><p id="announcement-message" class="text-sm text-gray-300 whitespace-pre-wrap"></p><div class="flex gap-2 mt-4"><button id="announcement-link-button" class="hidden flex-1 bg-hero-red p-3 rounded-xl font-bold">Open link</button><button onclick="document.getElementById('announcement-modal').classList.add('hidden')" class="flex-1 bg-white/10 p-3 rounded-xl font-bold">Continue</button></div></div></div>
+<div id="bank-modal" class="hidden fixed inset-0 z-[100] bg-black/80 p-5 flex items-center justify-center"><form id="bank-form" class="w-full max-w-sm rounded-2xl border border-hero-red/40 bg-[#170606] p-5 space-y-3"><h2 class="text-xl font-black">Bank Account Details</h2><input id="bank-holder" required class="premium-input" placeholder="Account holder name"><input id="bank-account" required inputmode="numeric" class="premium-input" placeholder="Account number"><input id="bank-ifsc" required class="premium-input uppercase" placeholder="IFSC code"><div class="flex gap-2"><button class="flex-1 bg-hero-red p-3 rounded-xl font-bold">Save</button><button type="button" onclick="document.getElementById('bank-modal').classList.add('hidden')" class="flex-1 bg-white/10 p-3 rounded-xl font-bold">Cancel</button></div></form></div>
+<div id="vip-modal" class="hidden fixed inset-0 z-[100] bg-black/80 p-5 flex items-center justify-center"><div class="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-2xl border border-hero-red/40 bg-[#170606] p-5"><h2 id="vip-modal-title" class="text-xl font-black mb-2">VIP Levels</h2><p id="vip-modal-message" class="text-sm text-gray-300 mb-3"></p><div id="vip-level-list" class="space-y-2"></div><button onclick="document.getElementById('vip-modal').classList.add('hidden')" class="mt-4 w-full bg-white/10 p-3 rounded-xl font-bold">Close</button></div></div>
+<div id="vip-payment-modal" class="hidden fixed inset-0 z-[110] bg-black/90 p-4 flex items-center justify-center"><form id="vip-payment-form" class="w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-2xl border border-hero-red/40 bg-[#170606] p-5 space-y-3"><h2 class="text-xl font-black">VIP Upgrade Payment</h2><p class="text-sm text-gray-300">Selected level: <b id="vip-pay-level">VIP 1</b></p><label class="block text-xs text-gray-400">Amount (₹)</label><input id="vip-pay-amount" readonly class="premium-input"/><div class="rounded-xl bg-white p-3 text-center"><img id="vip-pay-qr" class="hidden mx-auto w-40 h-40 object-contain" alt="Admin UPI QR"/><p id="vip-pay-upi" class="text-black font-bold break-all">UPI ID not configured</p></div><label class="block text-xs text-gray-400">12-digit UTR / payment reference</label><input id="vip-pay-utr" required inputmode="numeric" pattern="[0-9]{12}" maxlength="12" class="premium-input" placeholder="Enter UTR"/><label class="block text-xs text-gray-400">Upload payment screenshot</label><input id="vip-pay-proof" type="file" accept="image/*" required class="premium-input"/><p class="text-xs text-gray-500">Upload only the payment confirmation screenshot. Never upload PINs or passwords.</p><div class="flex gap-2"><button id="vip-pay-submit" class="flex-1 bg-hero-red p-3 rounded-xl font-bold">Continue to Upgrade</button><button type="button" onclick="document.getElementById('vip-payment-modal').classList.add('hidden')" class="flex-1 bg-white/10 p-3 rounded-xl font-bold">Cancel</button></div></form></div>
+<div id="recharge-record-modal" class="hidden fixed inset-0 z-[100] bg-black/80 p-5 flex items-center justify-center"><div class="w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-2xl border border-hero-red/40 bg-[#170606] p-5"><h2 class="text-xl font-black mb-3">Deposit History</h2><div id="recharge-record-list" class="space-y-2 text-sm"></div><button onclick="document.getElementById('recharge-record-modal').classList.add('hidden')" class="mt-4 w-full bg-white/10 p-3 rounded-xl font-bold">Close</button></div></div>
+<div id="withdraw-pass-modal" class="hidden fixed inset-0 z-[120] bg-black/90 p-5 flex items-center justify-center"><form id="withdraw-pass-form" class="w-full max-w-sm rounded-2xl border border-emerald-500/40 bg-[#07140e] p-5 space-y-3"><h2 class="text-xl font-black">Reset Withdrawal Password</h2><p class="text-xs text-gray-400">Confirm your current login password, then set a new withdrawal password.</p><input id="withdraw-reset-login" type="password" required autocomplete="current-password" class="premium-input" placeholder="Current login password"><input id="withdraw-reset-new" type="password" required minlength="6" autocomplete="new-password" class="premium-input" placeholder="New withdrawal password (6+ characters)"><input id="withdraw-reset-confirm" type="password" required minlength="6" autocomplete="new-password" class="premium-input" placeholder="Confirm new withdrawal password"><div class="flex gap-2"><button id="withdraw-reset-submit" class="flex-1 bg-emerald-600 p-3 rounded-xl font-bold">Reset Password</button><button type="button" onclick="document.getElementById('withdraw-pass-modal').classList.add('hidden')" class="flex-1 bg-white/10 p-3 rounded-xl font-bold">Cancel</button></div></form></div>
+<div id="password-modal" class="hidden fixed inset-0 z-[100] bg-black/80 p-5 flex items-center justify-center"><form id="change-password-form" class="w-full max-w-sm rounded-2xl border border-hero-red/40 bg-[#170606] p-5 space-y-3"><h2 class="text-xl font-black">Change Login Password</h2><input id="old-login-password" type="password" required autocomplete="current-password" class="premium-input" placeholder="Current login password"><input id="new-login-password" type="password" required minlength="6" autocomplete="new-password" class="premium-input" placeholder="New password (6+ characters)"><input id="confirm-login-password" type="password" required minlength="6" autocomplete="new-password" class="premium-input" placeholder="Confirm new password"><div class="flex gap-2"><button class="flex-1 bg-hero-red p-3 rounded-xl font-bold">Update Password</button><button type="button" onclick="document.getElementById('password-modal').classList.add('hidden')" class="flex-1 bg-white/10 p-3 rounded-xl font-bold">Cancel</button></div></form></div>
+
+<script>
+    // --- EXACT FIREBASE CONFIG REQUIRED ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDmbEyB8LuUzvXG-RrKh2MihoemuqIA_gU",
+        authDomain: "hero-2e6d3.firebaseapp.com",
+        databaseURL: "https://hero-2e6d3-default-rtdb.firebaseio.com",
+        projectId: "hero-2e6d3",
+        storageBucket: "hero-2e6d3.firebasestorage.app",
+        messagingSenderId: "926353731059",
+        appId: "1:926353731059:web:2eb52ef51e3aaa4509b686",
+        measurementId: "G-3KQC1H1SXS"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    try { const incomingRef = new URLSearchParams(location.search).get('ref'); if (incomingRef && /^\d{6}$/.test(incomingRef)) document.getElementById('reg-invite').value = incomingRef; } catch(e) {}
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // --- STATE ---
+    let currentUser = null;
+    let userData = { balance: 0, vipLevel: 0, inviteCode: '' };
+
+    // --- UI UTILS ---
+    const showLoading = () => document.getElementById('loading').style.display = 'flex';
+    const hideLoading = () => document.getElementById('loading').style.display = 'none';
+    
+    const showToast = (msg, type = 'success') => {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        const bg = type === 'success' ? 'bg-green-600/90 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : 'bg-hero-red/90 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.5)]';
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-circle-xmark';
+        
+        toast.className = `toast p-4 rounded-xl border backdrop-blur-md flex items-center gap-3 text-white text-sm font-bold tracking-wide ${bg}`;
+        toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i> ${msg}`;
+        container.appendChild(toast);
+        
+        if(type === 'success') playSound('https://actions.google.com/sounds/v1/cartoon/ting.ogg');
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-20px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    const playSound = (url) => { try { new Audio(url).play().catch(e=>{}); } catch(e){} }
+    let splashTimerStarted = false;
+    const playCinematicLoginSound = () => {
+      if (publicSettings && publicSettings.loginSoundEnabled === false) return;
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+        const ctx = new Ctx();
+        const now = ctx.currentTime;
+        // Short, polished electronic signature; intentionally moderate in volume.
+        [[392,0,0.16],[523.25,0.12,0.18],[783.99,0.25,0.24]].forEach(([freq,delay,dur],i)=>{
+          const osc=ctx.createOscillator(), gain=ctx.createGain(); osc.type=i===2?'triangle':'sine'; osc.frequency.setValueAtTime(freq,now+delay);
+          gain.gain.setValueAtTime(0.0001,now+delay); gain.gain.exponentialRampToValueAtTime(i===2?0.12:0.075,now+delay+0.025); gain.gain.exponentialRampToValueAtTime(0.0001,now+delay+dur);
+          osc.connect(gain); gain.connect(ctx.destination); osc.start(now+delay); osc.stop(now+delay+dur+0.02);
+        });
+        setTimeout(()=>ctx.close().catch(()=>{}),900);
+      } catch(e) { /* Sound is optional; login must still work if audio is blocked. */ }
+    };
+    const applyBrandingSettings = (s) => {
+      const title = String(s.splashTitle || 'INVEST HERO').slice(0,40);
+      const tagline = String(s.splashTagline || 'Your account. Your dashboard. Your control.').slice(0,100);
+      document.getElementById('splash-title').textContent = title;
+      document.getElementById('splash-tagline').textContent = tagline;
+      const logoUrl = safeLink(s.splashLogoUrl || '');
+      const splashImg=document.getElementById('splash-logo'), splashIcon=document.getElementById('splash-default-icon');
+      const loginImg=document.getElementById('login-logo-image'), loginIcon=document.getElementById('login-logo-icon');
+      if (logoUrl) {
+        splashImg.src=logoUrl; splashImg.style.display='block'; splashIcon.style.display='none';
+        loginImg.src=logoUrl; loginImg.classList.remove('hidden'); loginIcon.classList.add('hidden');
+        splashImg.onerror=()=>{splashImg.style.display='none';splashIcon.style.display='block';};
+        loginImg.onerror=()=>{loginImg.classList.add('hidden');loginIcon.classList.remove('hidden');};
+      } else { splashImg.style.display='none'; splashIcon.style.display='block'; loginImg.classList.add('hidden'); loginIcon.classList.remove('hidden'); }
+      const duration=Math.max(1200,Math.min(6000,Number(s.splashDurationMs)||2200));
+      if (!splashTimerStarted) { splashTimerStarted=true; setTimeout(()=>document.getElementById('premium-splash')?.classList.add('splash-hidden'),duration); }
+    };
+    const triggerConfetti = () => { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#dc2626', '#ffffff', '#8B0000', '#FFD700'] }); };
+
+    // --- NAVIGATION LOGIC ---
+    const switchScreen = (screenId) => {
+        if (screenId === 'withdraw' && currentUser) { setTimeout(async () => { try { const snap = await db.ref(`users/${currentUser.uid}/bankDetails`).once('value'); const b = snap.val() || {}; document.getElementById('wd-name').value = b.accountHolder || ''; document.getElementById('wd-acc').value = b.accountNumber || ''; document.getElementById('wd-ifsc').value = b.ifsc || ''; } catch(e) {} }, 0); }
+        if (screenId === 'withdraw-history') setTimeout(() => window.loadWithdrawalHistory && window.loadWithdrawalHistory(), 0);
+        document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active');
+            setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, 300);
+        });
+
+        const target = document.getElementById(`screen-${screenId}`);
+        if(target) {
+            target.style.display = 'block';
+            setTimeout(() => target.classList.add('active'), 10);
+        }
+
+        const bNav = document.getElementById('bottom-nav');
+        const popups = document.getElementById('live-popups');
+        
+        if (['login', 'signup'].includes(screenId)) {
+            bNav.classList.add('hidden');
+            popups.classList.add('hidden');
+        } else {
+            bNav.classList.remove('hidden');
+            if(screenId === 'home') popups.classList.remove('hidden'); else popups.classList.add('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-hero-red');
+                btn.classList.add('text-gray-500');
+                if(btn.dataset.target === screenId) {
+                    btn.classList.remove('text-gray-500');
+                    btn.classList.add('text-hero-red');
+                }
+            });
+        }
+    };
+
+    // --- AUTHENTICATION & RTDB LOGIC ---
+    const generateInviteCode = () => String(Math.floor(100000 + Math.random() * 900000));
+    
+    const triggerFakeOTP = () => {
+        const phone = document.getElementById('reg-phone').value;
+        if(phone.length < 10) return showToast("Enter a valid 10-digit mobile number", "error");
+        showLoading();
+        setTimeout(() => {
+            hideLoading();
+            showToast("OTP verification is not configured. Sign-up uses email/password only.", "error");
+        }, 1200);
+    };
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('reg-email').value;
+        const pass = document.getElementById('reg-password').value;
+        const phone = document.getElementById('reg-phone').value;
+        const name = document.getElementById('reg-name').value;
+        const wPass = document.getElementById('reg-withdraw-password').value;
+        const inviteCode = document.getElementById('reg-invite').value.trim();
+        if (!/^\d{6}$/.test(inviteCode)) { hideLoading(); return showToast('Invite code must be 6 digits.', 'error'); }
+
+        showLoading();
+        try {
+            const inviterSnap = await db.ref('users').orderByChild('inviteCode').equalTo(inviteCode).once('value');
+            if (!inviterSnap.exists()) { hideLoading(); return showToast('Invite code not found. Check the 6-digit code.', 'error'); }
+            let inviterKey = null, inviterData = null;
+            inviterSnap.forEach(c => { if (!inviterKey) { inviterKey = c.key; inviterData = c.val(); } });
+            const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+            let myCode = generateInviteCode();
+            for (let tries = 0; tries < 5; tries++) {
+              const exists = await db.ref('users').orderByChild('inviteCode').equalTo(myCode).once('value');
+              if (!exists.exists()) break;
+              myCode = generateInviteCode();
+            }
+            
+            await db.ref(`users/${userCred.user.uid}`).set({
+                name: name,
+                phone: phone,
+                email: email,
+                withdrawPassword: wPass,
+                inviteCode: myCode,
+                referredBy: inviteCode.trim().toUpperCase(),
+                referrer: inviteCode.trim().toUpperCase(),
+                balance: 0,
+                vipLevel: 0,
+                lastCheckIn: 0,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+            await ensureUniqueAccountId(userCred.user.uid);
+            // Admin-configured referral reward is credited once on successful invited signup.
+            const referralSettings = (await db.ref('settings/referralReward').once('value')).val();
+            const reward = Math.max(0, Number(referralSettings || 0));
+            if (inviterKey && reward > 0) {
+              const rewardLogRef = db.ref(`referralRewards/${userCred.user.uid}`);
+              const rewardTx = await rewardLogRef.transaction(existing => existing || { referrerUid: inviterKey, referredUid: userCred.user.uid, code: inviteCode, amount: reward, createdAt: firebase.database.ServerValue.TIMESTAMP });
+              if (rewardTx.committed && rewardTx.snapshot.val().referredUid === userCred.user.uid) {
+                await db.ref(`users/${inviterKey}`).update({ balance: firebase.database.ServerValue.increment(reward), wallet: firebase.database.ServerValue.increment(reward) });
+              }
+            }
+
+            triggerConfetti();
+            showToast("Welcome to INVEST HERO!", "success");
+            // Auto-login handles screen switch via onAuthStateChanged
+        } catch (error) {
+            showToast(error.message, "error");
+        } finally {
+            hideLoading();
+        }
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-password').value;
+        
+        showLoading();
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+            playCinematicLoginSound();
+            showToast("Login Successful", "success");
+        } catch (error) {
+            showToast(error.message, "error");
+        } finally {
+            hideLoading();
+        }
+    });
+
+    const logout = () => {
+        auth.signOut().then(() => {
+            currentUser = null;
+            userData = { balance: 0, vipLevel: 0, inviteCode: '' };
+            switchScreen('login');
+        });
+    };
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            initUserData(user.uid);
+            switchScreen('home');
+            startFakePopups();
+            startCountdown();
+            renderPlans();
+            loadPublicSettings();
+        } else {
+            switchScreen('login');
+        }
+    });
+
+    async function ensureUniqueAccountId(uid) {
+      const userRef = db.ref(`users/${uid}`);
+      const current = (await userRef.child('accountId').once('value')).val();
+      if (/^\d{9}$/.test(String(current || ''))) return String(current);
+      for (let attempt = 0; attempt < 40; attempt++) {
+        const candidate = String(Math.floor(100000000 + Math.random() * 900000000));
+        const reservation = await db.ref(`accountIdIndex/${candidate}`).transaction(existing => existing == null ? uid : undefined, undefined, false);
+        if (!reservation.committed && reservation.snapshot.val() !== uid) continue;
+        const check = await db.ref(`users/${uid}/accountId`).transaction(existing => existing || candidate, undefined, false);
+        const finalId = String(check.snapshot.val() || candidate);
+        if (finalId === candidate || /^\d{9}$/.test(finalId)) {
+          await db.ref(`accountIdIndex/${finalId}`).set(uid);
+          return finalId;
+        }
+      }
+      throw new Error('Could not allocate a unique 9-digit Account ID. Check Firebase rules.');
+    }
+
+    const initUserData = (uid) => {
+        ensureUniqueAccountId(uid).catch(err => { console.error(err); showToast('Account ID setup failed. Please contact support.', 'error'); });
+        db.ref(`users/${uid}`).on('value', snapshot => {
+            if(snapshot.exists()) {
+                userData = snapshot.val();
+                updateUI();
+            }
+        });
+    };
+
+    const updateUI = () => {
+        const photoEl = document.getElementById('profile-photo');
+        const fallbackEl = document.getElementById('profile-photo-fallback');
+        if (photoEl && userData.photoURL) { photoEl.src = userData.photoURL; photoEl.style.display='block'; if(fallbackEl) fallbackEl.style.display='none'; }
+
+        document.getElementById('ui-vip-level').innerText = userData.vipLevel || '0';
+        document.getElementById('prof-vip').innerText = userData.vipLevel || '0';
+        document.getElementById('prof-name').innerText = userData.name || 'Investor';
+        document.getElementById('prof-phone').innerText = userData.phone || '---';
+        const accountIdEl = document.getElementById('prof-account-id'); if (accountIdEl) accountIdEl.innerText = userData.accountId || 'Assigning…';
+        
+        const bal = parseFloat(userData.balance || 0).toFixed(2);
+        document.querySelectorAll('.ui-balance-sync').forEach(el => el.innerText = bal);
+
+        document.getElementById('my-invite-code').innerText = userData.inviteCode || '------';
+        const profileCode = document.getElementById('profile-invite-code'); if (profileCode) profileCode.innerText = userData.inviteCode || '------';
+        const code = String(userData.inviteCode || '').trim();
+        if (code) {
+          const inviteLink = `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
+          document.getElementById('ref-link').value = inviteLink;
+          const qr = document.getElementById('invite-qr'); if (qr) qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(inviteLink)}`;
+        } else if (currentUser) ensureInviteCode(currentUser.uid);
+        loadTeamSettingsAndStats();
+        renderPlanHistory();
+    };
+
+    async function ensureInviteCode(uid) {
+      try {
+        const userRef = db.ref(`users/${uid}/inviteCode`);
+        const existing = (await userRef.once('value')).val(); if (existing) return;
+        for (let i=0;i<8;i++) {
+          const code = String(Math.floor(100000 + Math.random()*900000));
+          const exists = await db.ref('users').orderByChild('inviteCode').equalTo(code).once('value');
+          if (!exists.exists()) { await userRef.transaction(v => v || code); return; }
+        }
+      } catch(e) { console.warn('Invite code generation failed', e); }
+    }
+    async function loadTeamSettingsAndStats() {
+      if (!currentUser) return;
+      try {
+        const [settingsSnap, usersSnap, logsSnap] = await Promise.all([db.ref('settings/mlm').once('value'), db.ref('users').once('value'), db.ref('commissionLogs').once('value')]);
+        const rates = settingsSnap.val() || {lv1:20,lv2:3,lv3:2};
+        ['lv1','lv2','lv3'].forEach((k,i)=>{ const el=document.getElementById(`team-rate-${i+1}`); if(el) el.textContent=`${Number(rates[k] ?? [20,3,2][i])}%`; });
+        const all=usersSnap.val()||{}; const myCode=userData.inviteCode; let direct=0, recharge=0;
+        Object.values(all).forEach(x=>{ if(x && (x.referredBy===myCode || x.referrer===myCode)) {direct++; recharge += Number(x.totalRecharge||x.rechargeTotal||0); }});
+        const c=document.getElementById('team-level1-count'); if(c)c.textContent=direct;
+        const r=document.getElementById('team-recharge-total'); if(r)r.textContent=`₹ ${recharge.toFixed(2)}`;
+        let total=0; Object.values(logsSnap.val()||{}).forEach(x=>{ if(x && x.uid===currentUser.uid) total+=Number(x.amount||0); });
+        const t=document.getElementById('team-commission-total'); if(t)t.textContent=`₹ ${total.toFixed(2)}`;
+      } catch(e) { console.warn('Team data load failed',e); }
+    }
+    function renderPlanHistory() {
+      const el=document.getElementById('plan-history-list'); if(!el || !currentUser)return;
+      db.ref(`users/${currentUser.uid}/planHistory`).once('value').then(snap=>{
+        const data=snap.val()||{}; const items=Object.entries(data).sort((a,b)=>Number(b[1].purchasedAt||0)-Number(a[1].purchasedAt||0));
+        if(!items.length){el.innerHTML='<p class="text-xs text-gray-500 text-center py-4">No purchased plans yet.</p>';return;}
+        el.innerHTML=items.map(([id,p])=>`<div class="glass-card p-4 rounded-xl border border-white/10"><div class="flex justify-between gap-3"><div><p class="text-sm font-bold">${String(p.planName||'Plan').replace(/[<>]/g,'')}</p><p class="text-[10px] text-gray-400 mt-1">Purchased ${p.purchasedAt?new Date(p.purchasedAt).toLocaleDateString():''} · ${Number(p.validityDays||0)} days</p><p class="text-[10px] text-gray-400 mt-1">Status: ${p.status||'active'} · Credited: ₹${Number(p.totalCredited||0).toFixed(2)}</p></div><div class="text-right"><p class="text-sm font-bold">₹${Number(p.price||0).toFixed(2)}</p><p class="text-[10px] text-green-400">₹${Number(p.dailyProfit||0).toFixed(2)}/day</p></div></div></div>`).join('');
+      }).catch(()=>{el.innerHTML='<p class="text-xs text-red-400">Could not load plan history.</p>';});
+    }
+
+    // --- APP FEATURES ---
+    const handleCheckIn = async () => {
+        if (!currentUser) return;
+        showLoading();
+        try {
+            // Calendar-day lock in India time; this client-side implementation is a UI fallback only.
+            // Production credits must be moved to a trusted backend because public RTDB rules can be abused.
+            const now = Date.now();
+            const dayKey = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+            const userRef = db.ref(`users/${currentUser.uid}`);
+            const tx = await userRef.transaction(u => {
+                if (!u) return;
+                const previous = String(u.lastCheckInDay || '');
+                if (previous === dayKey) return;
+                const amount = Math.max(0, Number(u.dailyCheckInReward ?? 1));
+                u.balance = Math.round((Number(u.balance ?? u.wallet ?? 0) + amount) * 100) / 100;
+                u.wallet = u.balance;
+                u.lastCheckIn = now;
+                u.lastCheckInDay = dayKey;
+                u.checkInHistory = u.checkInHistory || {};
+                u.checkInHistory[dayKey] = {amount, claimedAt: now};
+                return u;
+            }, undefined, false);
+            if (!tx.committed) return showToast('Aaj ka check-in pehle hi ho chuka hai.', 'error');
+            userData = tx.snapshot.val();
+            updateUI();
+            triggerConfetti();
+            showToast('Daily check-in successful!', 'success');
+        } catch(e) {
+            console.error(e);
+            showToast('Check-in failed. Database security/backend setup is required.', 'error');
+        } finally { hideLoading(); }
+    };
+
+    let plansCache = [];
+    let selectedPlanCategory = 'daily';
+    const showPlanCategory = (category) => { selectedPlanCategory = category; document.querySelectorAll('.plan-category-btn').forEach(b => { const active = b.textContent.toLowerCase().startsWith(category === 'event' ? 'events' : category); b.className = `plan-category-btn px-4 py-2 rounded-full text-xs font-bold ${active ? 'bg-hero-red' : 'bg-black border border-white/10'}`; }); renderPlanCards(); };
+    const renderPlans = async () => {
+        const container = document.getElementById('plans-container');
+        if (!container) return;
+        container.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">Loading plans…</p>';
+        try {
+          const snap = await db.ref('plans').once('value');
+          plansCache = Object.entries(snap.val() || {}).map(([id, p]) => ({
+            id, name: p.name || 'Plan', category: p.category || 'daily', description: p.description || '', price: Number(p.price || 0),
+            daily: Number(p.dailyProfit || 0), days: Number(p.validityDays || 0),
+            vip: Number(p.vipRequired || 0), active: p.active !== false,
+            purchaseLimit: Number(p.purchaseLimit || 1),
+            img: p.imageUrl || ''
+          })).filter(p => p.active);
+          renderPlanCards(); return;
+        } catch (err) {
+          container.innerHTML = '<p class="text-sm text-red-400 text-center py-6">Could not load plans. Please try again.</p>';
+          return;
+        }
+    };
+    const renderPlanCards = () => {
+        const container = document.getElementById('plans-container'); if (!container) return;
+        container.innerHTML = '';
+        const visiblePlans = plansCache.filter(p => selectedPlanCategory === 'vip0' ? p.vip === 0 : p.category === selectedPlanCategory);
+        if (!visiblePlans.length) { container.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">No active items in this category yet.</p>'; return; }
+        visiblePlans.forEach(plan => {
+            const isLocked = (userData.vipLevel || 0) < plan.vip;
+            const total = plan.daily * plan.days;
+            
+            const card = document.createElement('div');
+            card.className = `plan-card glass-card rounded-2xl overflow-hidden relative border border-hero-red/20 ${isLocked ? 'opacity-60 grayscale' : 'shadow-neon-red'}`;
+            
+            card.innerHTML = `
+                ${isLocked ? `<div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm"><i class="fa-solid fa-lock text-4xl text-gray-400 mb-2"></i><p class="font-black tracking-widest uppercase text-sm text-gray-300">Requires VIP ${plan.vip}</p></div>` : ''}
+                <div class="h-32 w-full bg-cover bg-center border-b border-hero-red/30 ${plan.img ? 'opacity-80' : 'opacity-100'}" style="${plan.img ? `background-image:url('${String(plan.img).replace(/'/g, '%27')}')` : 'background:linear-gradient(135deg,#210707,#111827);'}">${plan.img ? '' : '<div class="h-full flex items-center justify-center text-white/50"><i class="fa-solid fa-layer-group text-4xl"></i></div>'}</div>
+                <div class="p-5 relative bg-gradient-to-t from-black to-transparent -mt-10">
+                    <div class="absolute top-2 right-4 bg-hero-red text-white font-black px-4 py-1.5 rounded-full shadow-neon-red border border-white/20 text-sm tracking-wider">₹${plan.price}</div>
+                    <h3 class="font-black text-xl mb-3 tracking-wide uppercase drop-shadow-md">${plan.name}</h3>
+                    <div class="grid grid-cols-3 gap-2 text-center mb-4 divide-x divide-white/10 bg-black/50 rounded-xl p-3 border border-white/10">
+                        <div><p class="text-[10px] text-gray-400 font-bold uppercase">Daily</p><p class="text-sm font-black text-green-500">₹${plan.daily}</p></div>
+                        <div><p class="text-[10px] text-gray-400 font-bold uppercase">Validity</p><p class="text-sm font-black">${plan.days} Days</p></div>
+                        <div><p class="text-[10px] text-gray-400 font-bold uppercase">Total</p><p class="text-sm font-black text-hero-red">₹${total}</p></div>
+                    </div>
+                    <button onclick="buyPlan('${plan.id}')" class="w-full py-3.5 ${isLocked ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-hero-red to-hero-maroon text-white active:scale-95 transition-transform shadow-neon-red hover:opacity-90'} font-black rounded-xl text-sm uppercase tracking-widest">Invest Now</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    };
+
+    const moneyINR = value => '₹' + Number(value || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const escapePlanText = value => String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
+    // MLM commission is triggered by a successful plan purchase, using admin-configured LV1-LV3 rates.
+    async function distributePlanPurchaseCommissions(plan, purchaseIds) {
+      try {
+        const settings = (await db.ref('settings/mlm').once('value')).val() || {};
+        const rates = [Number(settings.lv1 || 0), Number(settings.lv2 || 0), Number(settings.lv3 || 0)];
+        let refCode = userData.referrer || userData.referredBy || '';
+        for (let i = 0; i < rates.length && refCode; i++) {
+          if (!(rates[i] > 0)) continue;
+          let upKey = String(refCode), upSnap = await db.ref('users/' + upKey).once('value');
+          if (!upSnap.exists()) {
+            const byCode = await db.ref('users').orderByChild('inviteCode').equalTo(String(refCode)).once('value');
+            byCode.forEach(c => { if (!upSnap.exists()) { upKey = c.key; upSnap = c; } });
+          }
+          if (!upSnap.exists()) {
+            const byPhone = await db.ref('users').orderByChild('phone').equalTo(String(refCode)).once('value');
+            byPhone.forEach(c => { if (!upSnap.exists()) { upKey = c.key; upSnap = c; } });
+          }
+          if (!upSnap.exists()) break;
+          const up = upSnap.val();
+          for (const purchaseId of purchaseIds) {
+            const commission = Math.round((Number(plan.price || 0) * rates[i] / 100) * 100) / 100;
+            if (commission <= 0) continue;
+            const logRef = db.ref('planCommissionLogs/' + purchaseId + '/level' + (i + 1));
+            const claim = await logRef.transaction(existing => existing ? undefined : {
+              purchaseId, planId: plan.id || '', planName: plan.name || '', fromUid: currentUser.uid,
+              toUid: upKey, toUser: up.phone || upKey, level: i + 1, percent: rates[i],
+              sourceAmount: Number(plan.price || 0), amount: commission,
+              createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'pending'
+            });
+            if (claim.committed) {
+              await db.ref('users/' + upKey).transaction(v => {
+                if (!v) return;
+                const bal = Number(v.balance ?? v.wallet ?? 0) + commission;
+                v.balance = Math.round(bal * 100) / 100; v.wallet = v.balance; return v;
+              });
+              await logRef.update({status:'credited', creditedAt:firebase.database.ServerValue.TIMESTAMP});
+              await db.ref('commissionLogs/' + purchaseId + '_L' + (i + 1)).set({
+                fromUser: userData.phone || currentUser.uid, toUser: up.phone || upKey, toUid: upKey,
+                level: 'LV' + (i + 1), amount: commission, sourceAmount: Number(plan.price || 0),
+                sourceType: 'plan_purchase', planName: plan.name || '', planPurchaseId: purchaseId,
+                at: firebase.database.ServerValue.TIMESTAMP
+              });
+            }
+          }
+          refCode = up.referrer || up.referredBy || '';
+        }
+      } catch (err) {
+        console.error('Plan MLM commission processing error:', err);
+        showToast('Plan purchase succeeded, but MLM commission needs admin review.', 'error');
+      }
+    }
+
+    window.buyPlan = function(id) {
+      if (!currentUser) return showToast('Please log in first.', 'error');
+      const plan = plansCache.find(p => p.id === id);
+      if (!plan) return showToast('Plan not found. Refresh and try again.', 'error');
+      if (Number(userData.vipLevel || 0) < plan.vip) return showToast(`Requires VIP ${plan.vip}`, 'error');
+      const old = document.getElementById('plan-purchase-modal'); if (old) old.remove();
+      const totalScheduled = Number(plan.daily || 0) * Number(plan.days || 0);
+      const modal = document.createElement('div'); modal.id='plan-purchase-modal'; modal.className='fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4';
+      modal.innerHTML = `<div class="w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/10 bg-[#101014] shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto"><div class="h-2 bg-gradient-to-r from-hero-red via-rose-500 to-hero-maroon"></div><div class="p-5"><div class="flex items-start justify-between gap-3"><div><p class="text-[10px] font-bold uppercase tracking-[.22em] text-hero-red">INVEST HERO · PLAN DETAILS</p><h2 class="mt-1 text-2xl font-black text-white">${escapePlanText(plan.name)}</h2><p class="mt-1 text-sm text-gray-400">${escapePlanText(plan.description||'Plan details and purchase summary')}</p></div><button type="button" id="plan-modal-close" class="rounded-full bg-white/10 w-9 h-9 text-gray-300">✕</button></div><div class="mt-5 rounded-2xl border border-white/10 bg-black/40 p-4"><div class="flex items-center justify-between"><span class="text-sm text-gray-400">Plan price</span><strong class="text-xl text-white">${moneyINR(plan.price)}</strong></div><div class="mt-4 grid grid-cols-2 gap-3"><div class="rounded-xl bg-white/5 p-3"><p class="text-[10px] uppercase text-gray-400">Daily displayed amount</p><p class="mt-1 font-bold text-emerald-400">${moneyINR(plan.daily)}</p></div><div class="rounded-xl bg-white/5 p-3"><p class="text-[10px] uppercase text-gray-400">Duration</p><p class="mt-1 font-bold text-white">${Number(plan.days)} days</p></div><div class="rounded-xl bg-white/5 p-3"><p class="text-[10px] uppercase text-gray-400">VIP required</p><p class="mt-1 font-bold text-white">VIP ${Number(plan.vip)}</p></div><div class="rounded-xl bg-white/5 p-3"><p class="text-[10px] uppercase text-gray-400">Scheduled estimate*</p><p class="mt-1 font-bold text-hero-red">${moneyINR(totalScheduled)}</p></div></div></div><label class="mt-5 block text-xs font-bold uppercase tracking-wider text-gray-400" for="plan-quantity">Number of plans to purchase</label><div class="mt-2 flex items-center gap-3"><button type="button" id="plan-qty-minus" class="h-11 w-11 rounded-xl border border-white/10 bg-white/5 text-xl">−</button><input id="plan-quantity" type="number" min="1" max="10" value="1" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-black text-center font-black text-white"/><button type="button" id="plan-qty-plus" class="h-11 w-11 rounded-xl border border-white/10 bg-white/5 text-xl">+</button></div><div class="mt-4 rounded-2xl border border-hero-red/30 bg-hero-red/10 p-4"><div class="flex justify-between text-sm text-gray-300"><span>Quantity</span><span id="plan-summary-qty">1</span></div><div class="mt-2 flex justify-between text-sm text-gray-300"><span>Wallet balance</span><span>${moneyINR(userData.balance ?? userData.wallet ?? 0)}</span></div><div class="mt-3 flex justify-between border-t border-white/10 pt-3"><span class="font-bold text-white">Total payable</span><strong id="plan-summary-total" class="text-xl text-hero-red">${moneyINR(plan.price)}</strong></div></div><p class="mt-3 text-[10px] leading-relaxed text-gray-500">*Any displayed daily/total amount is an estimate only, not a guarantee of profit. Review the plan terms before buying. Purchases are charged to your wallet and may not be reversible.</p><button type="button" id="plan-purchase-confirm" class="mt-5 w-full rounded-xl bg-gradient-to-r from-hero-red to-hero-maroon py-4 font-black uppercase tracking-widest text-white shadow-lg">Confirm Purchase</button></div></div>`;
+      document.body.appendChild(modal);
+      const qtyEl=modal.querySelector('#plan-quantity'); const totalEl=modal.querySelector('#plan-summary-total'); const qtyLabel=modal.querySelector('#plan-summary-qty'); const confirmBtn=modal.querySelector('#plan-purchase-confirm');
+      const updateSummary=()=>{let q=Math.max(1,Math.min(10,Math.floor(Number(qtyEl.value)||1)));qtyEl.value=q;qtyLabel.textContent=q;totalEl.textContent=moneyINR(plan.price*q);confirmBtn.disabled=(Number(userData.balance ?? userData.wallet ?? 0)<plan.price*q);confirmBtn.classList.toggle('opacity-50',confirmBtn.disabled);confirmBtn.textContent=confirmBtn.disabled?'Insufficient Balance':'Confirm Purchase · '+moneyINR(plan.price*q);};
+      qtyEl.addEventListener('input',updateSummary); modal.querySelector('#plan-qty-minus').onclick=()=>{qtyEl.value=Math.max(1,(Number(qtyEl.value)||1)-1);updateSummary();}; modal.querySelector('#plan-qty-plus').onclick=()=>{qtyEl.value=Math.min(10,(Number(qtyEl.value)||1)+1);updateSummary();};
+      modal.querySelector('#plan-modal-close').onclick=()=>modal.remove(); modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();}); updateSummary();
+      confirmBtn.onclick=async()=>{const quantity=Math.max(1,Math.min(10,Math.floor(Number(qtyEl.value)||1)));const payable=Math.round(plan.price*quantity*100)/100;if(Number(userData.balance ?? userData.wallet ?? 0)<payable){showToast('Insufficient balance. Please recharge first.','error');return;}confirmBtn.disabled=true;confirmBtn.textContent='Processing…';showLoading();try{const userRef=db.ref(`users/${currentUser.uid}`);const now=Date.now();const purchaseIds=Array.from({length:quantity},()=>db.ref(`users/${currentUser.uid}/planHistory`).push().key);const tx=await userRef.transaction(u=>{if(!u)return;const balance=Number(u.balance??u.wallet??0);if(balance<payable)return;u.balance=Math.round((balance-payable)*100)/100;u.wallet=u.balance;u.planHistory=u.planHistory||{};u.activePlans=u.activePlans||{};for(let i=0;i<quantity;i++){const purchaseId=purchaseIds[i];u.planHistory[purchaseId]={planId:plan.id,planName:plan.name,price:plan.price,dailyProfit:plan.daily,validityDays:plan.days,totalScheduledAmount:totalScheduled,purchasedAt:now,startAt:now,endAt:now+plan.days*86400000,nextCreditAt:now+86400000,totalCredited:0,status:'active',quantity:1};u.activePlans[purchaseId]=true;}return u;},undefined,false);if(!tx.committed){showToast('Balance changed or insufficient. Please retry.','error');updateSummary();return;}userData=tx.snapshot.val();updateUI();renderPlanHistory();modal.remove();await distributePlanPurchaseCommissions(plan, purchaseIds);showToast(`${quantity} plan${quantity>1?'s':''} purchased successfully.`, 'success');}catch(err){console.error(err);showToast('Purchase failed. Check connection and database rules.','error');}finally{hideLoading();confirmBtn.disabled=false;}};
+    };
+
+    const claimPromo = async () => {
+      if (!currentUser) return showToast('Please log in first.', 'error');
+      const input = document.getElementById('promo-input'); const code = (input?.value || '').trim().toUpperCase();
+      if (!/^[A-Z0-9_-]{3,32}$/.test(code)) return showToast('Enter a valid promo code.', 'error');
+      showLoading();
+      try {
+        const promoRef = db.ref('promoCodes/' + code); let promoValue = 0;
+        const promoCheck = (await promoRef.once('value')).val();
+        if (promoCheck && promoCheck.vipLevel !== undefined && promoCheck.vipLevel !== null && promoCheck.vipLevel !== 'all' && Number(promoCheck.vipLevel) !== Number(userData.vipLevel || 0)) {
+          showToast(`This promo is only for VIP ${Number(promoCheck.vipLevel)} users. Your level is VIP ${Number(userData.vipLevel || 0)}.`, 'error'); return;
+        }
+        const tx = await promoRef.transaction(p => {
+          if (!p || p.active === false || (p.expiresAt && Date.now() > Number(p.expiresAt)) || Number(p.usedCount || 0) >= Number(p.maxUses || 0)) return;
+          if (p.vipLevel !== undefined && p.vipLevel !== null && p.vipLevel !== 'all' && Number(p.vipLevel) !== Number(userData.vipLevel || 0)) return;
+          promoValue = Number(p.value || 0); if (promoValue <= 0) return;
+          p.usedCount = Number(p.usedCount || 0) + 1; return p;
+        });
+        if (!tx.committed) { showToast('Promo code invalid, expired, or fully redeemed.', 'error'); return; }
+        const claimRef = db.ref(`promoRedemptions/${currentUser.uid}/${code}`);
+        const claimTx = await claimRef.transaction(existing => existing ? undefined : { uid: currentUser.uid, code, value: promoValue, status: 'redeemed', createdAt: firebase.database.ServerValue.TIMESTAMP });
+        if (!claimTx.committed) { await promoRef.child('usedCount').transaction(n => Math.max(0, Number(n || 0) - 1)); showToast('You already used this promo code.', 'error'); return; }
+        await db.ref(`users/${currentUser.uid}`).update({ balance: firebase.database.ServerValue.increment(promoValue), wallet: firebase.database.ServerValue.increment(promoValue) });
+        showToast(`Promo redeemed: ₹${promoValue} added.`, 'success'); if (input) input.value = '';
+      } catch (err) { console.error(err); showToast('Promo redemption failed. Check connection and rules.', 'error'); }
+      finally { hideLoading(); }
+    };
+    window.claimPromo = claimPromo;
+    const promoBtn = document.getElementById('promo-claim-btn') || document.querySelector('[data-claim-promo]');
+    if (promoBtn) promoBtn.addEventListener('click', claimPromo);
+
+    window.showVipUpgrade = async function() {
+      try {
+        const snap = await db.ref('settings').once('value'); const settings = snap.val() || {};
+        const current = Number(userData.vipLevel || 0), max = Math.max(0, Math.min(100, Number(settings.vipMaxLevel ?? 5)));
+        const prices = Array.isArray(settings.vipPrices) ? settings.vipPrices : Object.values(settings.vipPrices || {});
+        document.getElementById('vip-modal-title').textContent = `VIP Levels (Current: VIP ${current})`;
+        document.getElementById('vip-modal-message').textContent = `Admin ne VIP 0 se VIP ${max} tak levels configure kiye hain. Har level ki upgrade price neeche hai.`;
+        const list = document.getElementById('vip-level-list'); list.innerHTML = '';
+        if (max < 1) list.innerHTML = '<p class="text-sm text-gray-400">No VIP levels configured by admin.</p>';
+        for (let level = 1; level <= max; level++) {
+          const price = Number(prices[level - 1] ?? prices[level] ?? 0);
+          const row = document.createElement('div'); row.className = 'p-3 rounded-xl border border-white/10 bg-white/5 flex items-center justify-between gap-3';
+          const label = document.createElement('div'); label.innerHTML = `<div class="font-black">VIP ${level}</div><div class="text-xs text-gray-400">Upgrade price</div>`;
+          const right = document.createElement('div'); right.className = 'text-right';
+          const priceEl = document.createElement('div'); priceEl.className = 'font-black text-emerald-400'; priceEl.textContent = `₹${price}`; right.appendChild(priceEl);
+          if (level === current) { const b=document.createElement('div'); b.className='text-xs text-emerald-300'; b.textContent='Current level'; right.appendChild(b); }
+          else if (level < current) { const b=document.createElement('div'); b.className='text-xs text-gray-500'; b.textContent='Already passed'; right.appendChild(b); }
+          else if (level === current + 1) { const b=document.createElement('button'); b.className='mt-1 text-xs bg-hero-red px-3 py-2 rounded-lg font-bold'; b.textContent='Upgrade'; b.onclick=()=>openVipPayment(level,price,current); right.appendChild(b); }
+          row.append(label,right); list.appendChild(row);
+        }
+        document.getElementById('vip-modal').classList.remove('hidden');
+      } catch(e) { showToast('Could not load VIP settings', 'error'); }
+    };
+    let selectedVipPayment = null;
+    async function openVipPayment(level, price, current) {
+      selectedVipPayment = { level, price, current };
+      document.getElementById('vip-modal').classList.add('hidden');
+      document.getElementById('vip-pay-level').textContent = `VIP ${level}`;
+      document.getElementById('vip-pay-amount').value = Number(price).toFixed(2);
+      document.getElementById('vip-pay-utr').value = '';
+      document.getElementById('vip-pay-proof').value = '';
+      try {
+        const snap = await db.ref('settings').once('value'); const settings = snap.val() || {};
+        document.getElementById('vip-pay-upi').textContent = settings.upiId || 'Admin UPI ID not configured';
+        const qr = document.getElementById('vip-pay-qr');
+        if (settings.qrCodeUrl) { qr.src = settings.qrCodeUrl; qr.classList.remove('hidden'); } else { qr.removeAttribute('src'); qr.classList.add('hidden'); }
+      } catch(e) { showToast('Could not load payment details.', 'error'); return; }
+      document.getElementById('vip-payment-modal').classList.remove('hidden');
+    }
+    document.getElementById('vip-payment-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (!currentUser || !selectedVipPayment) return showToast('Please login again.', 'error');
+      const utr = document.getElementById('vip-pay-utr').value.trim();
+      const file = document.getElementById('vip-pay-proof').files[0];
+      if (!/^\d{12}$/.test(utr)) return showToast('Enter a valid 12-digit UTR.', 'error');
+      if (!file || !file.type.startsWith('image/')) return showToast('Upload a payment screenshot.', 'error');
+      if (file.size > 5 * 1024 * 1024) return showToast('Screenshot must be 5 MB or smaller.', 'error');
+      const btn = document.getElementById('vip-pay-submit'); btn.disabled = true; btn.textContent = 'Uploading…';
+      try {
+        const duplicate = await db.ref('vipUpgradeRequests').orderByChild('utr').equalTo(utr).once('value');
+        if (duplicate.exists()) throw new Error('This UTR has already been submitted.');
+        const requestRef = db.ref('vipUpgradeRequests').push();
+        const storageRef = firebase.storage().ref(`vip-payment-proofs/${currentUser.uid}/${requestRef.key}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`);
+        const upload = await storageRef.put(file);
+        const proofUrl = await upload.ref.getDownloadURL();
+        await requestRef.set({ uid: currentUser.uid, userPhone: userData.phone || '', userName: userData.name || '', fromLevel: selectedVipPayment.current, toLevel: selectedVipPayment.level, price: Number(selectedVipPayment.price), utr, proofUrl, status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP });
+        document.getElementById('vip-payment-modal').classList.add('hidden');
+        showToast('Payment proof submitted. VIP upgrades after admin verifies payment.', 'success');
+      } catch(err) { console.error(err); showToast(err.message || 'Submission failed. Check Firebase Storage rules.', 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Continue to Upgrade'; }
+    });
+    window.openRechargeRecords = async function() {
+      const list = document.getElementById('recharge-record-list'); list.innerHTML = '<p class="text-gray-400">Loading records…</p>';
+      document.getElementById('recharge-record-modal').classList.remove('hidden');
+      try {
+        const snap = await db.ref('rechargeRequests').orderByChild('uid').equalTo(currentUser.uid).once('value');
+        const rows=[]; snap.forEach(child=>rows.push({id:child.key,...child.val()})); rows.sort((a,b)=>Number(b.createdAt||b.timestamp||0)-Number(a.createdAt||a.timestamp||0));
+        list.innerHTML='';
+        if(!rows.length){list.innerHTML='<p class="text-gray-400">No recharge records found.</p>';return;}
+        rows.forEach(r=>{const card=document.createElement('div');card.className='p-3 rounded-xl bg-white/5 border border-white/10'; const amount=document.createElement('div');amount.className='font-black text-emerald-400';amount.textContent=`₹${Number(r.amount||0).toFixed(2)}`;const meta=document.createElement('div');meta.className='text-xs text-gray-300 mt-1';meta.textContent=`Status: ${r.status||'pending'} · UTR: ${r.utr||'—'}`;const date=document.createElement('div');date.className='text-xs text-gray-500 mt-1';const ts=Number(r.createdAt||r.timestamp||0);date.textContent=ts?new Date(ts).toLocaleString():'Date unavailable';card.append(amount,meta,date);list.appendChild(card);});
+      } catch(e) { list.innerHTML='<p class="text-rose-300">Could not load recharge history. Check Firebase rules.</p>'; }
+    };
+    window.openChangePassword = function(){ document.getElementById('change-password-form').reset(); document.getElementById('password-modal').classList.remove('hidden'); };
+    window.openWithdrawalPasswordReset = function(){ document.getElementById('withdraw-pass-form').reset(); document.getElementById('withdraw-pass-modal').classList.remove('hidden'); };
+    window.copyAccountUid = async function(){ if(!currentUser) return showToast('Please log in first.','error'); try { const id=String((userData||{}).accountId||await ensureUniqueAccountId(currentUser.uid)); await navigator.clipboard.writeText(id); showToast('Account ID '+id+' copied.','success'); } catch(e) { showToast('Could not copy Account ID. Please try again.','error'); } };
+    window.sendLoginPasswordReset = async function(){ const email=(document.getElementById('login-email').value||'').trim(); if(!email) return showToast('Enter your registered email first.','error'); try { await auth.sendPasswordResetEmail(email); showToast('Password reset email sent. Check your inbox and spam folder.','success'); } catch(e) { showToast(e.code==='auth/user-not-found'?'No account found for this email.':(e.message||'Could not send reset email.'),'error'); } };
+    document.getElementById('withdraw-pass-form').addEventListener('submit', async function(e){ e.preventDefault(); if(!currentUser || !currentUser.email) return showToast('Please sign in again.','error'); const loginPass=document.getElementById('withdraw-reset-login').value; const next=document.getElementById('withdraw-reset-new').value; const confirmPass=document.getElementById('withdraw-reset-confirm').value; if(next.length<6) return showToast('New withdrawal password must be at least 6 characters.','error'); if(next!==confirmPass) return showToast('New passwords do not match.','error'); if(next===loginPass) return showToast('Use a different password for withdrawals.','error'); const btn=document.getElementById('withdraw-reset-submit'); btn.disabled=true; btn.textContent='Verifying…'; try { const credential=firebase.auth.EmailAuthProvider.credential(currentUser.email,loginPass); await currentUser.reauthenticateWithCredential(credential); await db.ref('users/'+currentUser.uid+'/withdrawPassword').set(next); if(userData) userData.withdrawPassword=next; document.getElementById('withdraw-pass-form').reset(); document.getElementById('withdraw-pass-modal').classList.add('hidden'); showToast('Withdrawal password reset successfully.','success'); } catch(err) { console.error(err); showToast(err.code==='auth/wrong-password' || err.code==='auth/invalid-credential' ? 'Incorrect login password.' : (err.message||'Could not reset withdrawal password. Check Firebase rules.'),'error'); } finally { btn.disabled=false; btn.textContent='Reset Password'; } });
+    document.getElementById('change-password-form').addEventListener('submit', async e=>{
+      e.preventDefault(); if(!currentUser) return;
+      const oldPass=document.getElementById('old-login-password').value, next=document.getElementById('new-login-password').value, confirmPass=document.getElementById('confirm-login-password').value;
+      if(next.length<6) return showToast('Password must be at least 6 characters.','error');
+      if(next!==confirmPass) return showToast('New passwords do not match.','error');
+      try { const credential=firebase.auth.EmailAuthProvider.credential(currentUser.email,oldPass); await currentUser.reauthenticateWithCredential(credential); await currentUser.updatePassword(next); document.getElementById('password-modal').classList.add('hidden'); showToast('Login password updated.','success'); }
+      catch(err) { showToast(err.code==='auth/wrong-password'||err.code==='auth/invalid-credential'?'Current password is incorrect.':(err.message||'Password update failed.'),'error'); }
+    });
+    window.copyProfileInviteCode = async function(){const code=userData.inviteCode||'';if(!code)return showToast('Invitation code unavailable.','error');try{await navigator.clipboard.writeText(code);showToast('Invitation code copied.','success');}catch(e){showToast('Could not copy code on this browser.','error');}};
+    let publicSettings = {};
+    const showLoginAnnouncement = (s) => {
+      if (s.loginPopupEnabled === false) return;
+      if (!s.loginPopupTitle && !s.loginPopupMessage && !s.loginPopupImageUrl) return;
+      const modal = document.getElementById('announcement-modal');
+      document.getElementById('announcement-title').textContent = s.loginPopupTitle || 'Announcement';
+      document.getElementById('announcement-message').textContent = s.loginPopupMessage || '';
+      const img = document.getElementById('announcement-image'), imageUrl = safeLink(s.loginPopupImageUrl || '');
+      if (imageUrl) { img.src = imageUrl; img.classList.remove('hidden'); } else img.classList.add('hidden');
+      const linkBtn = document.getElementById('announcement-link-button'), link = safeLink(s.loginPopupLinkUrl || s.bannerLinkUrl || '');
+      if (link) { linkBtn.textContent = String(s.loginPopupButtonText || 'Explore More').slice(0,40); linkBtn.classList.remove('hidden'); linkBtn.onclick = () => window.open(link, '_blank', 'noopener'); } else linkBtn.classList.add('hidden');
+      modal.classList.remove('hidden');
+    };
+    const safeLink = (url) => { try { const u = new URL(url); return ['https:','http:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
+    const loadPublicSettings = async () => {
+      try { const snap = await db.ref('settings').once('value'); publicSettings = snap.val() || {}; applyBrandingSettings(publicSettings); showLoginAnnouncement(publicSettings);
+        const upi = publicSettings.upiId || ''; document.getElementById('admin-upi').textContent = upi || 'Payment details not configured';
+        const qr = safeLink(publicSettings.qrCodeUrl || ''); const img = document.getElementById('user-payment-qr');
+        if (qr) { img.src = qr; img.classList.remove('hidden'); } else { img.classList.add('hidden'); }
+        const bannerImg = safeLink(publicSettings.bannerImageUrl || ''); if (bannerImg) document.getElementById('home-banner-image').src = bannerImg;
+        const bannerTitle = publicSettings.bannerTitle || ''; if (bannerTitle) document.querySelector('#home-banner h2').textContent = bannerTitle;
+        ['telegram','whatsapp'].forEach(k => { const el = document.getElementById('support-'+k+'-link'); const u = safeLink(publicSettings['support'+(k==='telegram'?'Telegram':'Whatsapp')] || ''); if (u) { el.href = u; el.classList.remove('hidden'); } else el.classList.add('hidden'); });
+      } catch (e) { console.warn('Public settings unavailable', e); }
+    };
+    const openBannerLink = () => { const url = safeLink(publicSettings.bannerLinkUrl || publicSettings.supportTelegram || ''); if (url) window.open(url, '_blank', 'noopener'); };
+    // Load branding at startup so the splash can use the Admin-configured logo.
+    setTimeout(()=>document.getElementById('premium-splash')?.classList.add('splash-hidden'),5000);
+    db.ref('settings').once('value').then(snap => { publicSettings=snap.val()||{}; applyBrandingSettings(publicSettings); }).catch(()=>{});
+    const supportAnswers = {
+      deposit:'Deposit help: check the amount and UTR in your recharge record. Payments may need verification. Never share your UPI PIN or OTP. If the payment is still pending, contact support with the request/reference ID.',
+      withdrawal:'Withdrawal help: check your request status and bank details. Processing time can vary. If the status does not change, contact the official support channel with your request ID.',
+      plan:'Plan help: open a plan to review its price, duration, daily amount and terms before buying. Displayed amounts are not a guarantee of profit. Do not invest money you cannot afford to lose.',
+      referral:'Invite help: enter a valid invite code during signup. Referral rewards apply only if the published eligibility rules are met; duplicate or self-referrals may be rejected.',
+      other:'Tell us the screen you were on and the request ID, if any. Do not send passwords, OTPs, UPI PINs or full bank credentials.'
+    };
+    document.querySelectorAll('.support-topic').forEach(btn => btn.addEventListener('click', () => {
+      const log = document.getElementById('support-chat-log');
+      const p = document.createElement('p'); p.textContent = '🤖 ' + (supportAnswers[btn.dataset.topic] || supportAnswers.other); log.appendChild(p); log.scrollTop = log.scrollHeight;
+    }));
+    const supportForm = document.getElementById('support-chat-form');
+    if (supportForm) supportForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('support-chat-input'); const q = (input.value || '').trim(); if (!q) return;
+      const log = document.getElementById('support-chat-log');
+      const userMsg = document.createElement('p'); userMsg.className = 'text-white'; userMsg.textContent = 'You: ' + q; log.appendChild(userMsg);
+      const text = q.toLowerCase(); let answer = supportAnswers.other;
+      if (/deposit|recharge|utr|payment|paid/.test(text)) answer = supportAnswers.deposit;
+      else if (/withdraw|bank|payout/.test(text)) answer = supportAnswers.withdrawal;
+      else if (/plan|daily|earning|profit|vip|purchase|buy/.test(text)) answer = supportAnswers.plan;
+      else if (/invite|referral|bonus|code/.test(text)) answer = supportAnswers.referral;
+      const botMsg = document.createElement('p'); botMsg.textContent = '🤖 ' + answer; log.appendChild(botMsg); log.scrollTop = log.scrollHeight; input.value = '';
+    });
+
+    const setRechargeAmount = (amt) => document.getElementById('recharge-amount').value = amt;
+    const copyUPI = () => {
+        navigator.clipboard.writeText(document.getElementById('admin-upi').innerText);
+        showToast("UPI ID Copied to Clipboard", "success");
+    };
+
+    document.getElementById('recharge-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const amt = document.getElementById('recharge-amount').value;
+        const utr = document.getElementById('recharge-utr').value;
+        if(amt < 200) return showToast("Minimum deposit is ₹200", "error");
+        if(utr.length !== 12) return showToast("Invalid UTR (Must be 12 digits)", "error");
+        
+        showLoading();
+        try {
+            await db.ref('rechargeRequests').push({
+                uid: currentUser.uid,
+                userPhone: userData.phone || 'Unknown',
+                amount: Number(amt),
+                utr: utr,
+                status: 'pending',
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            showToast("Deposit Request Submitted for Review", "success");
+            document.getElementById('recharge-utr').value = '';
+            setTimeout(() => switchScreen('home'), 1500);
+        } catch(e) {
+            showToast("Error submitting request", "error");
+        } finally {
+            hideLoading();
+        }
+    });
+
+    window.openBankDetails = async function() {
+      if (!currentUser) return;
+      const snap = await db.ref(`users/${currentUser.uid}/bankDetails`).once('value'); const b = snap.val() || {};
+      document.getElementById('bank-holder').value = b.accountHolder || '';
+      document.getElementById('bank-account').value = b.accountNumber || '';
+      document.getElementById('bank-ifsc').value = b.ifsc || '';
+      const pending = await db.ref('bankChangeRequests').orderByChild('uid').equalTo(currentUser.uid).once('value');
+      if (Object.values(pending.val() || {}).some(r => r.status === 'pending')) showToast('Bank change request pending admin approval.', 'info');
+      document.getElementById('bank-modal').classList.remove('hidden');
+    };
+    document.getElementById('bank-form').addEventListener('submit', async e => {
+      e.preventDefault(); if (!currentUser) return;
+      const details = { accountHolder: document.getElementById('bank-holder').value.trim(), accountNumber: document.getElementById('bank-account').value.trim(), ifsc: document.getElementById('bank-ifsc').value.trim().toUpperCase() };
+      if (!details.accountHolder || !/^\d{8,20}$/.test(details.accountNumber) || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(details.ifsc)) return showToast('Enter valid account holder, account number and IFSC.', 'error');
+      try {
+        const usersSnap = await db.ref('users').once('value'); let duplicate = false;
+        usersSnap.forEach(child => { if (child.key !== currentUser.uid) { const bd = child.child('bankDetails').val(); if (bd && String(bd.accountNumber || '').replace(/\s/g,'') === details.accountNumber) duplicate = true; } });
+        const reqSnap = await db.ref('bankChangeRequests').once('value');
+        reqSnap.forEach(child => { const r = child.val(); if (r && r.uid !== currentUser.uid && r.status === 'pending' && String((r.requestedDetails || {}).accountNumber || '').replace(/\s/g,'') === details.accountNumber) duplicate = true; });
+        if (duplicate) return showToast('This bank account is already linked to another account.', 'error');
+        const oldSnap = await db.ref(`users/${currentUser.uid}/bankDetails`).once('value'); const old = oldSnap.val();
+        if (old && old.accountNumber) {
+          const ownReq = await db.ref('bankChangeRequests').orderByChild('uid').equalTo(currentUser.uid).once('value');
+          if (Object.values(ownReq.val() || {}).some(r => r.status === 'pending')) return showToast('A bank change request is already pending.', 'error');
+          await db.ref('bankChangeRequests').push({ uid: currentUser.uid, userPhone: userData.phone || '', requestedDetails: details, status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP });
+          document.getElementById('bank-modal').classList.add('hidden'); showToast('Change request sent. Bank details update after admin approval.', 'success');
+        } else {
+          await db.ref(`users/${currentUser.uid}/bankDetails`).set({...details, updatedAt: firebase.database.ServerValue.TIMESTAMP});
+          document.getElementById('bank-modal').classList.add('hidden'); showToast('Bank details saved.', 'success');
+        }
+      } catch(err) { console.error(err); showToast('Could not save bank details. Check Firebase permissions.', 'error'); }
+    });
+    document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const amt = Number(document.getElementById('wd-amount').value);
+        const savedBank = (await db.ref(`users/${currentUser.uid}/bankDetails`).once('value')).val() || {};
+        const name = document.getElementById('wd-name').value || savedBank.accountHolder;
+        const acc = document.getElementById('wd-acc').value || savedBank.accountNumber;
+        const ifsc = document.getElementById('wd-ifsc').value || savedBank.ifsc;
+        if (!name || !acc || !ifsc) return showToast('Add your bank account details first.', 'error');
+        const pass = document.getElementById('wd-pass').value;
+
+        const wdSettings = publicSettings || {};
+        const minWd = Math.max(1, Number(wdSettings.minWithdrawal || 200));
+        const nowLocal = new Date();
+        const currentMinutes = nowLocal.getHours() * 60 + nowLocal.getMinutes();
+        const startParts = String(wdSettings.withdrawalStartTime || '00:00').split(':').map(Number);
+        const endParts = String(wdSettings.withdrawalEndTime || '18:00').split(':').map(Number);
+        const startMinutes = (startParts[0] || 0) * 60 + (startParts[1] || 0);
+        const endMinutes = (endParts[0] || 18) * 60 + (endParts[1] || 0);
+        const inWindow = startMinutes <= endMinutes ? currentMinutes >= startMinutes && currentMinutes <= endMinutes : currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+        if (!inWindow) return showToast(`Withdrawals are available ${wdSettings.withdrawalStartTime || '00:00'}–${wdSettings.withdrawalEndTime || '18:00'} only.`, 'error');
+        if(amt < minWd) return showToast(`Minimum withdrawal is ₹${minWd}`, 'error');
+        if(amt > userData.balance) return showToast("Insufficient Withdrawable Balance", "error");
+        if(pass !== userData.withdrawPassword) return showToast("Incorrect Withdrawal Password", "error");
+
+        showLoading();
+        let reserved = false;
+        try {
+            // Reserve the funds atomically so simultaneous requests cannot overspend the wallet.
+            const balanceRef = db.ref(`users/${currentUser.uid}/balance`);
+            const balanceTxn = await balanceRef.transaction(currentBalance => {
+                const current = Number(currentBalance || 0);
+                if (!Number.isFinite(current) || current < amt) return;
+                return Math.round((current - amt) * 100) / 100;
+            });
+            if (!balanceTxn.committed) throw new Error('INSUFFICIENT_BALANCE');
+            reserved = true;
+            userData.balance = Number(balanceTxn.snapshot.val() || 0);
+            updateUI();
+
+            const reqRef = db.ref('withdrawalRequests').push();
+            await reqRef.set({
+                uid: currentUser.uid,
+                userPhone: userData.phone || 'Unknown',
+                accountId: userData.accountId || '',
+                amount: amt,
+                bankDetails: { accountHolder: name, accountNumber: acc, ifsc: ifsc },
+                status: 'pending',
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                checkingAt: firebase.database.ServerValue.TIMESTAMP,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            reserved = false;
+            showToast("Withdrawal submitted. Amount has been reserved.", "success");
+            e.target.reset();
+            if (window.loadWithdrawalHistory) window.loadWithdrawalHistory();
+            setTimeout(() => switchScreen('withdraw-history'), 700);
+        } catch(err) {
+            console.error(err);
+            // If creating the request failed after reserving funds, return the reservation.
+            if (reserved) {
+                try {
+                    await db.ref(`users/${currentUser.uid}/balance`).transaction(v => Math.round((Number(v || 0) + amt) * 100) / 100);
+                    const fresh = await db.ref(`users/${currentUser.uid}`).once('value');
+                    userData = {...userData, ...(fresh.val() || {})}; updateUI();
+                } catch(refundErr) { console.error('Withdrawal reservation refund failed', refundErr); }
+            }
+            showToast(err && err.message === 'INSUFFICIENT_BALANCE' ? 'Insufficient balance.' : 'Withdrawal failed. No request was created.', "error");
+        } finally {
+            hideLoading();
+        }
+    });
+
+    window.loadWithdrawalHistory = async function() {
+      const el = document.getElementById('withdrawal-history-list');
+      if (!el || !currentUser) return;
+      el.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">Loading withdrawal history…</p>';
+      try {
+        const snap = await db.ref('withdrawalRequests').orderByChild('uid').equalTo(currentUser.uid).once('value');
+        const rows = Object.entries(snap.val() || {}).sort((a,b) => Number(b[1].createdAt || b[1].timestamp || 0) - Number(a[1].createdAt || a[1].timestamp || 0));
+        if (!rows.length) { el.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">No withdrawal requests yet.</p>'; return; }
+        const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const date = v => v ? new Date(Number(v)).toLocaleString() : 'Awaiting update';
+        const duration = (a,b) => {
+          if (!a || !b) return 'In progress';
+          const ms = Math.max(0, Number(b)-Number(a)), mins = Math.floor(ms/60000);
+          if (mins < 1) return 'Less than 1 minute';
+          const hrs = Math.floor(mins/60), days = Math.floor(hrs/24);
+          return days ? `${days}d ${hrs%24}h` : hrs ? `${hrs}h ${mins%60}m` : `${mins}m`;
+        };
+        el.innerHTML = rows.map(([id,r]) => {
+          const status = String(r.status || 'pending').toLowerCase();
+          const paid = status === 'paid', failed = status === 'failed' || status === 'rejected';
+          const color = paid ? 'text-green-400' : failed ? 'text-red-400' : 'text-yellow-300';
+          const bank = r.bankDetails || {};
+          const created = Number(r.createdAt || r.timestamp || 0);
+          const processed = Number(r.processedAt || 0);
+          const titleStatus = paid ? 'Paid' : failed ? 'Failed' : 'Checking';
+          return `<button type="button" onclick="showWithdrawalDetail('${esc(id)}')" class="w-full text-left glass-card rounded-xl p-4 border border-white/10 hover:border-hero-red/50 transition-colors">
+            <div class="flex justify-between gap-3 items-start"><div><p class="font-bold">Withdrawal · ₹${Number(r.amount||0).toFixed(2)}</p><p class="text-xs text-gray-400 mt-1">${esc(date(created))}</p><p class="text-[10px] text-gray-500 mt-1">ID: ${esc(String(id).slice(-8))}</p></div><span class="text-xs font-black uppercase ${color}">${titleStatus}</span></div>
+            <div class="mt-3 grid grid-cols-2 gap-2 text-xs"><div class="bg-black/30 rounded-lg p-2"><p class="text-gray-500">Checking time</p><p class="text-gray-200 mt-1">${esc(duration(created, processed || (status==='pending' ? Date.now() : 0)))}</p></div><div class="bg-black/30 rounded-lg p-2"><p class="text-gray-500">Processing</p><p class="text-gray-200 mt-1">${paid ? esc(duration(r.checkingAt || created, processed)) : failed ? 'Failed' : 'In progress'}</p></div></div>
+          </button>`;
+        }).join('');
+      } catch (err) { console.error(err); el.innerHTML = '<p class="text-sm text-red-400 text-center py-8">Could not load withdrawal history.</p>'; }
+    };
+
+    window.showWithdrawalDetail = async function(id) {
+      const el = document.getElementById('withdrawal-history-list');
+      try {
+        const snap = await db.ref('withdrawalRequests/' + id).once('value');
+        const r = snap.val();
+        if (!r || r.uid !== currentUser.uid) return;
+        const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const d = v => v ? new Date(Number(v)).toLocaleString() : 'Waiting for update';
+        const dur = (a,b) => {
+          if (!a || !b) return 'In progress';
+          const m=Math.max(0,Math.floor((Number(b)-Number(a))/60000));
+          return m<1?'Less than 1 minute':m<60?`${m} minutes`:`${Math.floor(m/60)}h ${m%60}m`;
+        };
+        const bank = r.bankDetails || {}, st=String(r.status||'pending').toLowerCase();
+        const status = st==='paid'?'Paid':(st==='failed'||st==='rejected')?'Failed':'Checking';
+        const end = r.processedAt || (st==='pending' ? Date.now() : 0);
+        const details = `<div class="glass-card rounded-2xl p-5 border border-hero-red/30 space-y-4">
+          <button type="button" onclick="loadWithdrawalHistory()" class="text-xs text-gray-400"><i class="fa-solid fa-arrow-left mr-2"></i>Back to history</button>
+          <div class="flex items-start justify-between"><div><p class="text-xs text-gray-400">WITHDRAWAL AMOUNT</p><h2 class="text-3xl font-black mt-1">₹${Number(r.amount||0).toFixed(2)}</h2><p class="text-[10px] text-gray-500 mt-2">Request ID: ${esc(id)}</p></div><span class="text-xs font-black uppercase ${status==='Paid'?'text-green-400':status==='Failed'?'text-red-400':'text-yellow-300'}">${status}</span></div>
+          <div class="space-y-3 text-sm"><div class="border-l-2 border-yellow-400 pl-3"><p class="font-bold">Withdrawal requested</p><p class="text-xs text-gray-400">${esc(d(r.createdAt||r.timestamp))}</p></div><div class="border-l-2 border-blue-400 pl-3"><p class="font-bold">Checking</p><p class="text-xs text-gray-400">${esc(d(r.checkingAt||r.createdAt))} · ${esc(dur(r.createdAt||r.timestamp, r.processedAt || (st==='pending'?Date.now():0)))}</p></div><div class="border-l-2 ${status==='Paid'?'border-green-400':status==='Failed'?'border-red-400':'border-white/20'} pl-3"><p class="font-bold">${status==='Paid'?'Payment completed':status==='Failed'?'Payment failed':'Payment pending'}</p><p class="text-xs text-gray-400">${esc(d(r.processedAt))}</p>${r.failureReason?`<p class="text-xs text-red-300 mt-1">Reason: ${esc(r.failureReason)}</p>`:''}</div></div>
+          <div class="bg-black/30 rounded-xl p-3 space-y-2"><p class="text-xs font-bold uppercase text-gray-400">Payout details</p><p class="text-sm">Account holder: ${esc(bank.accountHolder||'—')}</p><p class="text-sm">Account number: ${esc(bank.accountNumber||'—')}</p><p class="text-sm">IFSC: ${esc(bank.ifsc||'—')}</p><p class="text-sm">Account ID: ${esc(r.accountId||userData.accountId||'—')}</p><p class="text-sm">Checking duration: ${esc(dur(r.createdAt||r.timestamp, r.processedAt || (st==='pending'?Date.now():0)))}</p><p class="text-sm">Time to paid: ${status==='Paid'?esc(dur(r.createdAt||r.timestamp,r.processedAt)):'Not paid yet'}</p></div>
+        </div>`;
+        el.innerHTML = details;
+      } catch(e) { console.error(e); showToast('Unable to open withdrawal details','error'); }
+    };
+
+    // Profile photo and admin-published APK download
+    window.uploadProfilePhoto = async function(input) {
+      const file = input && input.files && input.files[0];
+      if (!file || !currentUser) return;
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) {
+        showToast('Choose a JPG, PNG or WEBP image under 5 MB.', 'error'); input.value=''; return;
+      }
+      try {
+        showLoading();
+        const storage = firebase.storage();
+        const ref = storage.ref('profilePhotos/' + currentUser.uid + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
+        await ref.put(file);
+        const url = await ref.getDownloadURL();
+        await db.ref('users/' + currentUser.uid).update({ photoURL: url });
+        userData.photoURL = url;
+        const img = document.getElementById('profile-photo');
+        img.src = url; img.style.display='block';
+        document.getElementById('profile-photo-fallback').style.display='none';
+        showToast('Profile photo updated.', 'success');
+      } catch (err) { console.error(err); showToast('Photo upload failed. Check Firebase Storage rules.', 'error'); }
+      finally { hideLoading(); input.value=''; }
+    };
+    window.downloadApp = async function() {
+      try {
+        const snap = await db.ref('settings/apkDownloadUrl').once('value');
+        const url = String(snap.val() || '').trim();
+        if (!url || !/^https:\/\//i.test(url)) return showToast('APK has not been uploaded by admin yet.', 'error');
+        window.open(url, '_blank', 'noopener');
+      } catch(e) { showToast('Could not load APK link.', 'error'); }
+    };
+    // --- UTILS ---
+    const startFakePopups = () => {
+        const names = [];
+        const actions = [];
+        const marquee = document.getElementById('marquee-text');
+        if (marquee) marquee.innerText = 'Welcome to INVEST HERO';
+    };
+
+    const startCountdown = () => {
+        setInterval(() => {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setHours(24,0,0,0);
+            const diff = tomorrow - now;
+            
+            const h = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, '0');
+            const m = String(Math.floor((diff / 1000 / 60) % 60)).padStart(2, '0');
+            const s = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
+            
+            const timerEl = document.getElementById('profit-timer');
+            if(timerEl) timerEl.innerText = `${h}:${m}:${s}`;
+        }, 1000);
+    };
+
+    const copyRefLink = () => {
+        const link = document.getElementById('ref-link');
+        link.select(); document.execCommand('copy');
+        showToast("Referral Link Copied!", "success");
+    };
+</script>
+
+</body>
+</html>
